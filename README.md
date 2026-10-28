@@ -129,7 +129,7 @@ Returns `201 Created` with the stored memory. Validation:
 
 ## Privacy
 
-The "keep their name private" and "send anonymously" options are handled in the browser: the name is **not sent to the server at all** when either option is checked. The database only stores names that were deliberately submitted. Missing names are rendered as "someone dearly missed" and "someone who loved them".
+The "keep their name private" and "send anonymously" options are handled in the browser: the name is **not sent to the server at all** when either option is checked. The database only stores names that were deliberately submitted. Missing names are rendered with the localized anonymous labels.
 
 The server never renders user text as HTML. The frontend inserts memories with `textContent`, so submitted text cannot inject markup.
 
@@ -155,6 +155,7 @@ rm -f db/memorial.db db/memorial.db-shm db/memorial.db-wal
 
 ## Frontend notes
 
+- The interface defaults to Swedish. The top-right language menu switches it to English and remembers the choice in `localStorage`; memory texts are shown as written.
 - The field loads up to 500 memories and filters by remembered name in the browser. On desktop it drifts a viewport-sized sample so messages stay readable instead of piling up; search still reaches every loaded memory. The API also supports `q` for future server-side search.
 - A few search results settle into a centered grid. Larger result sets slide into a scrollable two-column grid, so every match is reachable. Clearing the search fades the results away and returns to the drift.
 - Clicking a memory opens its full text, byline, and relative date.

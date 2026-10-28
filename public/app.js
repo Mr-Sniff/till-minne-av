@@ -10,6 +10,164 @@
   const MAX_TEXT = 400;
   const MAX_NAME = 80;
   const LOAD_LIMIT = 500;
+  const LANG_KEY = 'till-minne-language';
+
+  const translations = {
+    sv: {
+      title: 'Till minne av',
+      metaDescription: 'En stilla plats för små tankar om dem vi saknar.',
+      skipToMemories: 'Hoppa till minnen',
+      searchLabel: 'Sök på namnet på den du minns',
+      searchPlaceholder: 'Sök på namn',
+      clearSearch: 'Rensa sökning',
+      searchResults: 'Sökresultat',
+      driftingMemories: 'Minnen i rörelse',
+      hintIdle: 'Håll muspekaren för att pausa · klicka för att läsa',
+      hintSearch: 'Klicka för att läsa · rensa sökningen för att återgå',
+      leaveMemory: 'Lämna ett minne',
+      inMemoryOf: 'Till minne av',
+      closeMemory: 'Stäng minnet',
+      closeForm: 'Stäng formuläret',
+      formTitle: 'Lämna ett minne',
+      formSub: 'Ett ögonblick, en vana, ett skratt, något du aldrig fick säga.',
+      yourMemory: 'Ditt minne',
+      memoryPlaceholder: 'Hon nynnade alltid medan hon lagade mat…',
+      keepShort: 'Håll det kort och sant.',
+      whoRemembering: 'Vem minns du?',
+      theirName: 'Deras namn',
+      yourName: 'Ditt namn',
+      optional: 'valfritt',
+      yourNamePlaceholder: 'Ditt namn',
+      keepPrivate: 'Håll deras namn privat',
+      shownAs: 'visas som ”någon kärt saknad”',
+      sendAnon: 'Skicka anonymt',
+      hideMyName: 'dölj mitt namn',
+      whereGo: 'Var ska det hamna?',
+      keepHere: 'Spara här',
+      keepHereDesc: 'Sparas i minnesplatsen. Det driver med de andra och går att hitta via sökning.',
+      intoVoid: 'Ut i tomheten',
+      intoVoidDesc: 'Driver förbi en gång och är sedan borta. Inget sparas.',
+      releaseIt: 'Släpp det',
+      releasing: 'Släpper…',
+      formNote: 'Privata namn lämnar aldrig din webbläsare. Allt annat delas offentligt.',
+      noscript: 'Till minne av behöver JavaScript för att låta minnena driva. Aktivera det för att läsa eller lämna ett minne.',
+      loading: 'Samlar minnen…',
+      noMemories: 'Inga minnen ännu.',
+      beFirst: 'Bli den första att lämna ett.',
+      loadError: 'Det gick inte att nå minnesplatsen.',
+      loadErrorDetail: 'Kontrollera att servern körs och försök igen.',
+      tryAgain: 'Försök igen',
+      couldNotLoad: 'Kunde inte ladda minnen',
+      noResults: (term) => `Inga minnen hittades för ”${term}”.`,
+      resultsFound: (count, term, scroll) => `${count} ${count === 1 ? 'minne' : 'minnen'} hittades för ”${term}”${scroll ? ' · rulla för att läsa alla' : ''}`,
+      memoriesKept: (count) => `${count} ${count === 1 ? 'minne' : 'minnen'} bevarade`,
+      forName: (name) => `Till minne av ${name}`,
+      memoryAria: (name, text) => `Minne för ${name}: ${text}`,
+      someoneDearlyMissed: 'någon kärt saknad',
+      someoneWhoLoved: 'någon som älskade dem',
+      leftBy: (name) => `Lämnat av ${name}`,
+      leftJustNow: 'Lämnat precis nu',
+      leftPrefix: 'Lämnat ',
+      seeAll: (name) => `Se alla minnen av ${name}`,
+      leaveFirstMemory: 'Lämna det första minnet',
+      voidToast: 'Släppt ut i tomheten. Det sparas inte.',
+      savedToast: 'Ditt minne är nu en del av molnet.',
+      saveError: 'Ditt minne kunde inte sparas. Försök igen.',
+      saveErrorToast: 'Ditt minne kunde inte sparas',
+      validationText: 'Skriv ett minne först.',
+      validationLength: `Ett minne kan vara högst ${MAX_TEXT} tecken.`,
+      validationFor: 'Berätta vem minnet är till, eller håll namnet privat.',
+      validationNames: `Namn kan vara högst ${MAX_NAME} tecken.`,
+      serverError: 'Något gick fel.',
+      tooMany: 'För många minnen på en gång. Vänta en liten stund.',
+      requestTooLarge: 'Förfrågan är för stor.',
+      invalidMemory: 'Minnet kunde inte sparas. Kontrollera uppgifterna.',
+      unexpectedResponse: 'Servern svarade oväntat.',
+      language: 'Språk',
+      swedish: 'Svenska',
+      english: 'English',
+    },
+    en: {
+      title: 'In memory of',
+      metaDescription: 'A quiet place for small thoughts about the ones we miss.',
+      skipToMemories: 'Skip to memories',
+      searchLabel: 'Search by the name of who is remembered',
+      searchPlaceholder: 'Search by name',
+      clearSearch: 'Clear search',
+      searchResults: 'Search results',
+      driftingMemories: 'Drifting memories',
+      hintIdle: 'Hover to pause · click to read',
+      hintSearch: 'Click to read · clear search to return',
+      leaveMemory: 'Leave a memory',
+      inMemoryOf: 'In memory of',
+      closeMemory: 'Close memory',
+      closeForm: 'Close form',
+      formTitle: 'Leave a memory',
+      formSub: 'A moment, a habit, a laugh, something you never got to say.',
+      yourMemory: 'Your memory',
+      memoryPlaceholder: 'She always hummed while she cooked…',
+      keepShort: 'Keep it short and true.',
+      whoRemembering: 'Who are you remembering?',
+      theirName: 'Their name',
+      yourName: 'Your name',
+      optional: 'optional',
+      yourNamePlaceholder: 'Your name',
+      keepPrivate: 'Keep their name private',
+      shownAs: 'shown as “someone dearly missed”',
+      sendAnon: 'Send anonymously',
+      hideMyName: 'hide my name',
+      whereGo: 'Where should it go?',
+      keepHere: 'Keep it here',
+      keepHereDesc: 'Stored in the memorial. It drifts with the others and can be found through search.',
+      intoVoid: 'Into the void',
+      intoVoidDesc: 'Drifts past once, then it is gone. Nothing is kept.',
+      releaseIt: 'Release it',
+      releasing: 'Releasing…',
+      formNote: 'Private names never leave your browser. Everything else is shared publicly.',
+      noscript: 'This memorial needs JavaScript to let the memories drift. Enable it to read or leave a memory.',
+      loading: 'Gathering memories…',
+      noMemories: 'No memories yet.',
+      beFirst: 'Be the first to leave one.',
+      loadError: 'The memorial could not be reached.',
+      loadErrorDetail: 'Make sure the Sinatra server is running, then try again.',
+      tryAgain: 'Try again',
+      couldNotLoad: 'Could not load memories',
+      noResults: (term) => `No memories found for “${term}”.`,
+      resultsFound: (count, term, scroll) => `${count} ${count === 1 ? 'memory' : 'memories'} found for “${term}”${scroll ? ' · scroll to read them all' : ''}`,
+      memoriesKept: (count) => `${count} ${count === 1 ? 'memory' : 'memories'} kept`,
+      forName: (name) => `for ${name}`,
+      memoryAria: (name, text) => `Memory for ${name}: ${text}`,
+      someoneDearlyMissed: 'someone dearly missed',
+      someoneWhoLoved: 'someone who loved them',
+      leftBy: (name) => `Left by ${name}`,
+      leftJustNow: 'Left just now',
+      leftPrefix: 'Left ',
+      seeAll: (name) => `See all memories of ${name}`,
+      leaveFirstMemory: 'Leave the first memory',
+      voidToast: 'Released into the void. It will not be kept.',
+      savedToast: 'Your memory is now part of the cloud.',
+      saveError: 'Your memory could not be saved. Please try again.',
+      saveErrorToast: 'Your memory could not be saved',
+      validationText: 'Please write a memory first.',
+      validationLength: `A memory can be at most ${MAX_TEXT} characters.`,
+      validationFor: 'Tell us who this memory is for, or keep their name private.',
+      validationNames: `Names can be at most ${MAX_NAME} characters.`,
+      serverError: 'Something went wrong.',
+      tooMany: 'Too many memories at once. Please wait a little while.',
+      requestTooLarge: 'Request body is too large.',
+      invalidMemory: 'The memory could not be saved. Please check the details.',
+      unexpectedResponse: 'The server returned an unexpected response.',
+      language: 'Language',
+      swedish: 'Svenska',
+      english: 'English',
+    },
+  };
+
+  let lang = 'sv';
+  const t = (key, ...args) => {
+    const value = translations[lang]?.[key] ?? translations.sv[key];
+    return typeof value === 'function' ? value(...args) : value;
+  };
 
   const els = {
     field: document.getElementById('field'),
@@ -41,6 +199,9 @@
     send: document.getElementById('send'),
     formError: document.getElementById('formError'),
     toast: document.getElementById('toast'),
+    langBtn: document.getElementById('langBtn'),
+    langMenu: document.getElementById('langMenu'),
+    langCode: document.getElementById('langCode'),
   };
 
   const state = {
@@ -55,19 +216,22 @@
     resultsOpen: false,
     activeModal: null,
     lastFocus: null,
+    fieldState: null,
   };
 
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-  const relativeTime = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
+  const relativeTimeFormats = {
+    sv: new Intl.RelativeTimeFormat('sv', { numeric: 'auto' }),
+    en: new Intl.RelativeTimeFormat('en', { numeric: 'auto' }),
+  };
   const rnd = (min, max) => min + Math.random() * (max - min);
   const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
   const fold = (value) => String(value ?? '')
     .toLocaleLowerCase()
     .normalize('NFKD')
     .replace(/[\u0300-\u036f]/g, '');
-  const labelFor = (memory) => memory.for_name || 'someone dearly missed';
-  const byline = (memory) => memory.by_name || 'someone who loved them';
-  const plural = (count, one, many) => `${count} ${count === 1 ? one : many}`;
+  const labelFor = (memory) => memory.for_name || t('someoneDearlyMissed');
+  const byline = (memory) => memory.by_name || t('someoneWhoLoved');
 
   let toastTimer = null;
   let searchTimer = null;
@@ -82,12 +246,15 @@
      Field state (loading / empty / error)
      ------------------------------------------------------------- */
 
-  function setFieldState({ kind, message, detail, actionLabel, onAction }) {
+  function paintFieldState() {
+    const config = state.fieldState;
+    if (!config) return;
+
     els.fieldState.replaceChildren();
-    els.fieldState.dataset.kind = kind || '';
+    els.fieldState.dataset.kind = config.kind || '';
     els.fieldState.hidden = false;
 
-    if (kind === 'loading') {
+    if (config.kind === 'loading') {
       const spinner = document.createElement('span');
       spinner.className = 'spinner';
       spinner.setAttribute('aria-hidden', 'true');
@@ -95,30 +262,137 @@
     }
 
     const heading = document.createElement('p');
-    heading.textContent = message;
+    heading.textContent = t(config.messageKey);
     els.fieldState.append(heading);
 
-    if (detail) {
+    if (config.detailKey) {
       const copy = document.createElement('p');
       copy.className = 'state-detail';
-      copy.textContent = detail;
+      copy.textContent = t(config.detailKey);
       els.fieldState.append(copy);
     }
 
-    if (actionLabel && onAction) {
+    if (config.actionKey && config.onAction) {
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'state-btn';
-      button.textContent = actionLabel;
-      button.addEventListener('click', onAction);
+      button.textContent = t(config.actionKey);
+      button.addEventListener('click', config.onAction);
       els.fieldState.append(button);
     }
   }
 
+  function setFieldState(config) {
+    state.fieldState = config;
+    paintFieldState();
+  }
+
   function clearFieldState() {
+    state.fieldState = null;
     els.fieldState.hidden = true;
     els.fieldState.replaceChildren();
     delete els.fieldState.dataset.kind;
+  }
+
+  /* -------------------------------------------------------------
+     Language
+     ------------------------------------------------------------- */
+
+  function applyStaticTranslations() {
+    document.querySelectorAll('[data-i18n]').forEach((el) => {
+      el.textContent = t(el.dataset.i18n);
+    });
+
+    document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => {
+      el.placeholder = t(el.dataset.i18nPlaceholder);
+    });
+
+    document.querySelectorAll('[data-i18n-aria-label]').forEach((el) => {
+      el.setAttribute('aria-label', t(el.dataset.i18nAriaLabel));
+    });
+  }
+
+  function refreshMemoryLabels() {
+    const byId = new Map(state.memories.map((memory) => [String(memory.id), memory]));
+
+    state.memories.forEach((memory) => {
+      const copies = state.copies.get(memory.id) || [];
+      copies.forEach((el) => {
+        const forLine = el.querySelector('.for');
+        if (forLine) forLine.textContent = t('forName', labelFor(memory));
+        el.setAttribute('aria-label', t('memoryAria', labelFor(memory), memory.text));
+      });
+    });
+
+    els.resultsInner.querySelectorAll('.result').forEach((card) => {
+      const memory = byId.get(card.dataset.id);
+      if (!memory) return;
+
+      const forLine = card.querySelector('.for');
+      if (forLine) forLine.textContent = t('forName', labelFor(memory));
+      card.setAttribute('aria-label', t('memoryAria', labelFor(memory), memory.text));
+    });
+  }
+
+  function updateHint() {
+    els.hint.textContent = state.search ? t('hintSearch') : t('hintIdle');
+  }
+
+  function readStoredLanguage() {
+    try {
+      return localStorage.getItem(LANG_KEY) === 'en' ? 'en' : 'sv';
+    } catch {
+      return 'sv';
+    }
+  }
+
+  function persistLanguage() {
+    try {
+      localStorage.setItem(LANG_KEY, lang);
+    } catch {
+      // Storage may be unavailable; the page still switches for this visit.
+    }
+  }
+
+  function setLanguageMenu(open) {
+    els.langMenu.hidden = !open;
+    els.langBtn.setAttribute('aria-expanded', String(open));
+
+    if (!open) return;
+
+    const selected = els.langMenu.querySelector('[aria-checked="true"]') || els.langMenu.querySelector('[data-lang]');
+    selected?.focus();
+  }
+
+  function applyLanguage(nextLang, { persist = true } = {}) {
+    lang = nextLang === 'en' ? 'en' : 'sv';
+    if (persist) persistLanguage();
+
+    document.documentElement.lang = lang;
+    document.title = t('title');
+
+    const description = document.querySelector('meta[name="description"]');
+    if (description) description.content = t('metaDescription');
+
+    applyStaticTranslations();
+
+    els.langCode.textContent = lang === 'sv' ? 'SV' : 'EN';
+    els.langBtn.setAttribute('aria-label', `${t('language')}: ${lang === 'sv' ? t('swedish') : t('english')}`);
+    els.langBtn.title = t('language');
+    els.langMenu.querySelectorAll('[data-lang]').forEach((option) => {
+      option.setAttribute('aria-checked', String(option.dataset.lang === lang));
+    });
+
+    refreshMemoryLabels();
+    if (state.loaded) refreshNames();
+    if (els.count.textContent) updateCount();
+    if (state.fieldState) paintFieldState();
+
+    if (state.search) applySearch(els.q.value);
+    else updateHint();
+
+    els.send.textContent = state.submitting ? t('releasing') : t('releaseIt');
+    updateValid();
   }
 
   /* -------------------------------------------------------------
@@ -156,12 +430,12 @@
 
     const forLine = document.createElement('span');
     forLine.className = 'for';
-    forLine.textContent = `for ${labelFor(memory)}`;
+    forLine.textContent = t('forName', labelFor(memory));
 
     inner.append(text, forLine);
     el.append(inner);
 
-    el.setAttribute('aria-label', `Memory for ${labelFor(memory)}: ${memory.text}`);
+    el.setAttribute('aria-label', t('memoryAria', labelFor(memory), memory.text));
 
     if (dupe) {
       el.tabIndex = -1;
@@ -305,7 +579,7 @@
   }
 
   function updateCount() {
-    els.count.textContent = `${plural(state.total, 'memory', 'memories')} kept`;
+    els.count.textContent = t('memoriesKept', state.total);
   }
 
   function refreshNames() {
@@ -314,7 +588,9 @@
       if (memory.for_name) set.add(memory.for_name);
     });
 
-    const names = [...set].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+    const names = [...set].sort((a, b) => (
+      a.localeCompare(b, lang === 'sv' ? 'sv' : 'en', { sensitivity: 'base' })
+    ));
     els.names.replaceChildren(...names.map((name) => {
       const option = document.createElement('option');
       option.value = name;
@@ -328,7 +604,7 @@
     els.field.querySelectorAll('.msg').forEach((el) => el.remove());
     state.copies.clear();
     closeResults({ immediate: true });
-    setFieldState({ kind: 'loading', message: 'Gathering memories\u2026' });
+    setFieldState({ kind: 'loading', messageKey: 'loading' });
 
     try {
       const response = await fetch(`${API_URL}?limit=${LOAD_LIMIT}`, {
@@ -352,9 +628,9 @@
       if (state.memories.length === 0) {
         setFieldState({
           kind: 'empty',
-          message: 'No memories yet.',
-          detail: 'Be the first to leave one.',
-          actionLabel: 'Leave a memory',
+          messageKey: 'noMemories',
+          detailKey: 'beFirst',
+          actionKey: 'leaveMemory',
           onAction: () => openForm(),
         });
       }
@@ -365,12 +641,12 @@
       console.error(error);
       setFieldState({
         kind: 'error',
-        message: 'The memorial could not be reached.',
-        detail: 'Make sure the Sinatra server is running, then try again.',
-        actionLabel: 'Try again',
+        messageKey: 'loadError',
+        detailKey: 'loadErrorDetail',
+        actionKey: 'tryAgain',
         onAction: loadMemories,
       });
-      toast('Could not load memories');
+      toast(t('couldNotLoad'));
       return false;
     } finally {
       els.field.removeAttribute('aria-busy');
@@ -393,7 +669,7 @@
     card.className = 'result enter';
     card.dataset.id = String(memory.id);
     card.style.setProperty('--enter-delay', `${Math.min(index * 18, 480)}ms`);
-    card.setAttribute('aria-label', `Memory for ${labelFor(memory)}: ${memory.text}`);
+    card.setAttribute('aria-label', t('memoryAria', labelFor(memory), memory.text));
 
     const inner = document.createElement('span');
     inner.className = 'in';
@@ -404,7 +680,7 @@
 
     const forLine = document.createElement('span');
     forLine.className = 'for';
-    forLine.textContent = `for ${labelFor(memory)}`;
+    forLine.textContent = t('forName', labelFor(memory));
 
     inner.append(text, forLine);
     card.append(inner);
@@ -536,9 +812,7 @@
 
     state.search = normalized;
     els.clr.hidden = rawValue.length === 0;
-    els.hint.textContent = searching
-      ? 'Click to read \u00B7 clear search to return'
-      : 'Hover to pause \u00B7 click to read';
+    updateHint();
     document.body.classList.toggle('searching', searching);
 
     if (!searching) {
@@ -558,11 +832,10 @@
     updateSearchPresentation(matchIds, overlay);
 
     if (matches.length === 0) {
-      els.status.textContent = `No memories found for \u201C${term}\u201D.`;
+      els.status.textContent = t('noResults', term);
       els.searchLeave.hidden = false;
     } else {
-      const scrollHint = matches.length > 6 ? ' \u00B7 scroll to read them all' : '';
-      els.status.textContent = `${plural(matches.length, 'memory', 'memories')} found for \u201C${term}\u201D${scrollHint}`;
+      els.status.textContent = t('resultsFound', matches.length, term, matches.length > 6);
       els.searchLeave.hidden = true;
     }
 
@@ -589,7 +862,7 @@
     if (Number.isNaN(date.getTime())) return '';
 
     const diff = date.getTime() - Date.now();
-    if (Math.abs(diff) < 60000) return 'Left just now';
+    if (Math.abs(diff) < 60000) return t('leftJustNow');
 
     const units = [
       ['year', 31536000000],
@@ -602,30 +875,32 @@
 
     for (const [unit, ms] of units) {
       if (Math.abs(diff) >= ms) {
-        return `Left ${relativeTime.format(Math.round(diff / ms), unit)}`;
+        return `${t('leftPrefix')}${relativeTimeFormats[lang].format(Math.round(diff / ms), unit)}`;
       }
     }
 
-    return 'Left just now';
+    return t('leftJustNow');
   }
 
   function showMemory(memory) {
     els.vFor.textContent = labelFor(memory);
     els.vText.textContent = `\u201C${memory.text}\u201D`;
-    els.vBy.textContent = `Left by ${byline(memory)}`;
+    els.vBy.textContent = t('leftBy', byline(memory));
 
     const when = formatWhen(memory.created_at);
     els.vWhen.textContent = when;
     els.vWhen.hidden = !when;
 
     const date = memory.created_at ? new Date(memory.created_at) : null;
-    els.vWhen.title = date && !Number.isNaN(date.getTime()) ? date.toLocaleString() : '';
+    els.vWhen.title = date && !Number.isNaN(date.getTime())
+      ? date.toLocaleString(lang === 'sv' ? 'sv-SE' : 'en-US')
+      : '';
 
     const known = Boolean(memory.for_name && memory.for_name.trim());
     els.vMore.hidden = !known;
 
     if (known) {
-      els.vMore.textContent = `See all memories of ${memory.for_name}`;
+      els.vMore.textContent = t('seeAll', memory.for_name);
       els.vMore.onclick = () => {
         closeModal();
         els.q.value = memory.for_name;
@@ -682,6 +957,13 @@
   }
 
   function onKeydown(event) {
+    if (event.key === 'Escape' && !els.langMenu.hidden) {
+      event.preventDefault();
+      setLanguageMenu(false);
+      els.langBtn.focus();
+      return;
+    }
+
     if (event.key === 'Escape') {
       if (state.activeModal) {
         event.preventDefault();
@@ -757,9 +1039,27 @@
     els.formEl.reset();
     els.fFor.disabled = false;
     els.fBy.disabled = false;
-    els.send.textContent = 'Release it';
+    els.send.textContent = t('releaseIt');
     hideFormError();
     updateValid();
+  }
+
+  function serverErrorMessage(response, data) {
+    if (lang === 'sv') {
+      if (response.status === 413) return t('requestTooLarge');
+      if (response.status === 429) return t('tooMany');
+      if (response.status === 422) return t('invalidMemory');
+      if (response.status >= 500) return t('serverError');
+      return t('saveError');
+    }
+
+    return data?.error || t('serverError');
+  }
+
+  function localizedError(message) {
+    const error = new Error(message);
+    error.localized = true;
+    return error;
   }
 
   async function handleSubmit(event) {
@@ -772,22 +1072,22 @@
     const destination = els.formEl.querySelector('input[name="dest"]:checked')?.value || 'server';
 
     if (!text) {
-      showFormError('Please write a memory first.');
+      showFormError(t('validationText'));
       els.fText.focus();
       return;
     }
     if (text.length > MAX_TEXT) {
-      showFormError(`A memory can be at most ${MAX_TEXT} characters.`);
+      showFormError(t('validationLength'));
       els.fText.focus();
       return;
     }
     if (!forName && !els.anonFor.checked) {
-      showFormError('Tell us who this memory is for, or keep their name private.');
+      showFormError(t('validationFor'));
       els.fFor.focus();
       return;
     }
     if ((forName && forName.length > MAX_NAME) || (byName && byName.length > MAX_NAME)) {
-      showFormError(`Names can be at most ${MAX_NAME} characters.`);
+      showFormError(t('validationNames'));
       return;
     }
 
@@ -810,12 +1110,12 @@
       }
       spawn(memory, { once: true, fresh: true, top: rnd(28, 72) });
       els.field.scrollTop = 0;
-      toast('Released into the void. It will not be kept.');
+      toast(t('voidToast'));
       return;
     }
 
     state.submitting = true;
-    els.send.textContent = 'Releasing\u2026';
+    els.send.textContent = t('releasing');
     updateValid();
 
     try {
@@ -832,8 +1132,8 @@
         // The status code below produces the useful error.
       }
 
-      if (!response.ok) throw new Error(data?.error || `The server responded ${response.status}.`);
-      if (!data || data.id === undefined) throw new Error('The server returned an unexpected response.');
+      if (!response.ok) throw localizedError(serverErrorMessage(response, data));
+      if (!data || data.id === undefined) throw localizedError(t('unexpectedResponse'));
 
       const wasLoaded = state.loaded;
 
@@ -871,14 +1171,14 @@
 
       updateCount();
       refreshNames();
-      toast('Your memory is now part of the cloud.');
+      toast(t('savedToast'));
     } catch (error) {
       console.error(error);
-      showFormError(error.message || 'Your memory could not be saved. Please try again.');
-      toast('Your memory could not be saved');
+      showFormError(error.localized ? error.message : t('saveError'));
+      toast(t('saveErrorToast'));
     } finally {
       state.submitting = false;
-      els.send.textContent = 'Release it';
+      els.send.textContent = t('releaseIt');
       updateValid();
     }
   }
@@ -962,6 +1262,50 @@
       hideFormError();
     });
 
+    els.langBtn.addEventListener('click', () => {
+      setLanguageMenu(els.langMenu.hidden);
+    });
+
+    els.langBtn.addEventListener('keydown', (event) => {
+      if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
+      event.preventDefault();
+      setLanguageMenu(true);
+
+      const options = [...els.langMenu.querySelectorAll('[data-lang]')];
+      const target = event.key === 'ArrowDown' ? options[0] : options[options.length - 1];
+      target?.focus();
+    });
+
+    els.langMenu.addEventListener('click', (event) => {
+      const option = event.target.closest('[data-lang]');
+      if (!option) return;
+
+      applyLanguage(option.dataset.lang);
+      setLanguageMenu(false);
+      els.langBtn.focus();
+    });
+
+    els.langMenu.addEventListener('keydown', (event) => {
+      const options = [...els.langMenu.querySelectorAll('[data-lang]')];
+      const index = options.indexOf(document.activeElement);
+
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        event.preventDefault();
+        const step = event.key === 'ArrowDown' ? 1 : -1;
+        const next = index < 0 ? 0 : (index + step + options.length) % options.length;
+        options[next]?.focus();
+        return;
+      }
+
+      if (event.key === 'Tab') setLanguageMenu(false);
+    });
+
+    document.addEventListener('click', (event) => {
+      if (els.langMenu.hidden) return;
+      if (event.target.closest('.lang-switch')) return;
+      setLanguageMenu(false);
+    });
+
     document.addEventListener('keydown', onKeydown);
 
     window.addEventListener('resize', handleLayoutChange);
@@ -969,8 +1313,8 @@
   }
 
   function init() {
+    applyLanguage(readStoredLanguage(), { persist: false });
     bindEvents();
-    updateValid();
     loadMemories();
   }
 
