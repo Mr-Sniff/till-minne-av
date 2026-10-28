@@ -135,7 +135,7 @@
       noResults: (term) => `No memories found for “${term}”.`,
       resultsFound: (count, term, scroll) => `${count} ${count === 1 ? 'memory' : 'memories'} found for “${term}”${scroll ? ' · scroll to read them all' : ''}`,
       memoriesKept: (count) => `${count} ${count === 1 ? 'memory' : 'memories'} kept`,
-      forName: (name) => `for ${name}`,
+      forName: (name) => `In memory of ${name}`,
       memoryAria: (name, text) => `Memory for ${name}: ${text}`,
       someoneDearlyMissed: 'someone dearly missed',
       someoneWhoLoved: 'someone who loved them',
