@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Remembered</title>
+  <meta name="description" content="A quiet place for small thoughts about the ones we miss.">
+  <meta name="theme-color" content="#080b14" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f6f0e4" media="(prefers-color-scheme: light)">
+  <link rel="icon"
+    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23080b14'/%3E%3Cpath d='M16 6.5l2 6.7 6.7 2-6.7 2-2 6.7-2-6.7-6.7-2 6.7-2z' fill='%23e9c46a'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+
+<body>
+  <a class="skip-link" href="#field">Skip to memories</a>
+
+  <header class="site-header">
+    <div class="brand">
+      <h1>Remembered</h1>
+      <p class="tagline">Small thoughts for the ones we miss</p>
+    </div>
+
+    <div class="search" role="search">
+      <label class="sr-only" for="q">Search by the name of who is remembered</label>
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+        stroke-linecap="round" aria-hidden="true">
+        <circle cx="10.5" cy="10.5" r="6.5"></circle>
+        <path d="M15.4 15.4L21 21"></path>
+      </svg>
+      <input id="q" type="text" list="names" placeholder="Search by name" autocomplete="off" spellcheck="false">
+      <button class="search-clear" id="clr" type="button" aria-label="Clear search" hidden>&times;</button>
+      <datalist id="names"></datalist>
+    </div>
+
+    <div class="search-feedback">
+      <p class="status" id="status" role="status" aria-live="polite"></p>
+      <button class="status-link" id="searchLeave" type="button" hidden>Leave the first memory</button>
+    </div>
+  </header>
+
+  <main class="field" id="field" tabindex="-1" aria-label="Drifting memories">
+    <div class="field-state" id="fieldState" role="status" aria-live="polite" hidden></div>
+  </main>
+
+  <p class="hint" aria-hidden="true">Hover to pause &middot; click to read</p>
+  <button class="fab" id="open" type="button">
+    <span class="fab-mark" aria-hidden="true">&#10022;</span>
+    Leave a memory
+  </button>
+  <p class="count" id="count"></p>
+
+  <div class="overlay" id="view" role="dialog" aria-modal="true" aria-labelledby="viewFor" hidden>
+    <div class="panel panel--memory">
+      <button class="x" type="button" data-close aria-label="Close memory">&times;</button>
+      <p class="eyebrow" id="viewFor">In memory of <b id="vFor"></b></p>
+      <blockquote class="big" id="vText"></blockquote>
+      <p class="meta" id="vBy"></p>
+      <p class="meta meta--when" id="vWhen"></p>
+      <button class="link" id="vMore" type="button" hidden></button>
+    </div>
+  </div>
+
+  <div class="overlay" id="form" role="dialog" aria-modal="true" aria-labelledby="formTitle" hidden>
+    <div class="panel">
+      <button class="x" type="button" data-close aria-label="Close form">&times;</button>
+      <h2 id="formTitle">Leave a memory</h2>
+      <p class="sub">A moment, a habit, a laugh, something you never got to say.</p>
+
+      <form id="memory-form" novalidate>
+        <label class="l" for="fText">Your memory</label>
+        <textarea id="fText" name="text" maxlength="400" rows="5" required
+          placeholder="She always hummed while she cooked&hellip;"></textarea>
+        <div class="field-meta">
+          <span>Keep it short and true.</span>
+          <span id="charCount" aria-hidden="true">0 / 400</span>
+        </div>
+
+        <div class="row">
+          <div>
+            <label class="l" for="fFor">Who are you remembering?</label>
+            <input type="text" id="fFor" name="for_name" maxlength="80" placeholder="Their name" autocomplete="off">
+          </div>
+          <div>
+            <label class="l" for="fBy">Your name <span class="opt">optional</span></label>
+            <input type="text" id="fBy" name="by_name" maxlength="80" placeholder="Your name" autocomplete="name">
+          </div>
+        </div>
+
+        <label class="chk">
+          <input type="checkbox" id="anonFor">
+          <span>Keep their name private <em>shown as &ldquo;someone dearly missed&rdquo;</em></span>
+        </label>
+        <label class="chk">
+          <input type="checkbox" id="anonBy">
+          <span>Send anonymously <em>hide my name</em></span>
+        </label>
+
+        <fieldset class="dest">
+          <legend class="l">Where should it go?</legend>
+          <div class="seg">
+            <label>
+              <input type="radio" name="dest" value="server" checked>
+              <b>Keep it here</b>
+              <span>Saved to the memorial. It drifts with the others and can be found by search.</span>
+            </label>
+            <label>
+              <input type="radio" name="dest" value="void">
+              <b>Into the void</b>
+              <span>Drifts past once, then is gone. Nothing is saved.</span>
+            </label>
+          </div>
+        </fieldset>
+
+        <p class="form-error" id="formError" role="alert" hidden></p>
+        <button class="go" id="send" type="submit" disabled>Release it</button>
+        <p class="form-note">Private names never leave your browser. Everything else is shared publicly.</p>
+      </form>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <noscript>
+    <div class="noscript">Remembered needs JavaScript to let the memories drift. Please enable it to read or leave a
+      memory.</div>
+  </noscript>
+</body>
+
+</html>
