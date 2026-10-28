@@ -171,6 +171,11 @@ body {
   pointer-events: none;
 }
 
+/* While searching, keep the list from showing through the fixed header. */
+body.searching .site-header::before {
+  background: linear-gradient(180deg, var(--bg-1) 0%, var(--bg-1) 64%, transparent 100%);
+}
+
 .brand h1 {
   margin: 0;
   font-family: var(--serif);
@@ -294,6 +299,148 @@ body {
 }
 
 /* ---------------------------------------------------------------
+   Search results
+   --------------------------------------------------------------- */
+
+.results {
+  position: fixed;
+  top: var(--results-top, 210px);
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 6;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 12px max(20px, calc((100vw - 1120px) / 2)) 150px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 14px, #000 100%);
+  mask-image: linear-gradient(180deg, transparent 0, #000 14px, #000 100%);
+  opacity: 1;
+  transform: none;
+  transition: opacity .3s var(--ease), transform .3s var(--ease);
+}
+
+.results.closing {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(10px);
+}
+
+.results::-webkit-scrollbar {
+  width: 10px;
+}
+
+.results::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background: var(--line-strong);
+  background-clip: content-box;
+}
+
+.results-inner {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 14px 18px;
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+}
+
+/* A handful of results keeps the quieter, floating feel of the old
+   search layout instead of stacking everything at the top. */
+.results-inner.sparse {
+  min-height: 100%;
+  align-content: center;
+  row-gap: clamp(24px, 7vh, 72px);
+}
+
+.result {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  appearance: none;
+}
+
+.result.enter {
+  animation: result-in .55s var(--ease) both;
+  animation-delay: var(--enter-delay, 0ms);
+}
+
+.result .in {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 14px 18px 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: 14px;
+  background: var(--field-hover);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, .16);
+  transition: background .25s, border-color .25s, box-shadow .25s, transform .25s var(--ease);
+}
+
+.result:hover .in,
+.result:focus-visible .in {
+  border-color: var(--accent);
+  background: var(--field);
+  box-shadow: 0 18px 46px rgba(0, 0, 0, .24), 0 0 30px var(--glow);
+  transform: translateY(-2px);
+}
+
+.result:focus-visible {
+  outline: none;
+}
+
+.result:focus-visible .in {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.result .text {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  font-family: var(--serif);
+  font-size: clamp(18px, .6vw + 14px, 21px);
+  line-height: 1.36;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+}
+
+.result .for {
+  display: block;
+  margin-top: 8px;
+  overflow: hidden;
+  color: var(--accent-strong);
+  font-size: 10.5px;
+  letter-spacing: .085em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+@keyframes result-in {
+  from {
+    opacity: 0;
+    transform: translate3d(52px, 9px, 0) scale(.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---------------------------------------------------------------
    Drifting field
    --------------------------------------------------------------- */
 
@@ -324,6 +471,7 @@ body {
   cursor: pointer;
   appearance: none;
   animation: drift var(--dur) linear var(--delay) infinite;
+  transition: opacity .3s var(--ease);
   will-change: transform;
 }
 
@@ -343,6 +491,12 @@ body {
   line-height: 1.32;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 4;
+}
+
+@media (min-width: 681px) and (prefers-reduced-motion: no-preference) {
+  .msg .text {
+    -webkit-line-clamp: 3;
+  }
 }
 
 .msg .for {
@@ -457,6 +611,13 @@ body.searching .msg.match .in {
 
 body.searching .msg.match .for {
   color: var(--accent-strong);
+}
+
+/* The matching messages are represented by the result cards while the
+   scrollable results layer is open. */
+body.results-open .msg.match {
+  opacity: 0;
+  pointer-events: none;
 }
 
 @keyframes drift {

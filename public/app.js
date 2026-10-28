@@ -19,7 +19,10 @@
     names: document.getElementById('names'),
     status: document.getElementById('status'),
     searchLeave: document.getElementById('searchLeave'),
+    results: document.getElementById('results'),
+    resultsInner: document.getElementById('resultsInner'),
     count: document.getElementById('count'),
+    hint: document.querySelector('.hint'),
     open: document.getElementById('open'),
     view: document.getElementById('view'),
     form: document.getElementById('form'),
@@ -46,8 +49,10 @@
     total: 0,
     copies: new Map(),
     search: '',
+    scrollBeforeSearch: 0,
     loaded: false,
     submitting: false,
+    resultsOpen: false,
     activeModal: null,
     lastFocus: null,
   };
@@ -66,7 +71,12 @@
 
   let toastTimer = null;
   let searchTimer = null;
+  let resultsTimer = null;
+  let resultsResetOnClose = false;
   let voidCounter = 0;
+
+  const usesListLayout = () => reduceMotion.matches || window.innerWidth <= 680;
+  let lastListLayout = usesListLayout();
 
   /* -------------------------------------------------------------
      Field state (loading / empty / error)
@@ -166,9 +176,9 @@
       });
     }
 
-    const listMode = reduceMotion.matches || window.innerWidth <= 680;
+    const listLayout = usesListLayout();
 
-    if (fresh && listMode) {
+    if (fresh && listLayout) {
       els.field.prepend(el);
     } else {
       els.field.append(el);
@@ -191,7 +201,7 @@
     }
 
     // List mode has no drift animation to fire animationend.
-    if (once && listMode) {
+    if (once && listLayout) {
       window.setTimeout(() => {
         el.classList.add('leaving');
         window.setTimeout(() => el.remove(), 600);
@@ -201,25 +211,97 @@
     return el;
   }
 
+  function driftLayout() {
+    const viewportHeight = window.innerHeight;
+    const headerBottom = document.querySelector('.site-header')?.getBoundingClientRect().bottom || 0;
+    const bottomReserve = 130;
+    const available = Math.max(240, viewportHeight - headerBottom - bottomReserve);
+    const lanes = clamp(Math.floor(available / 112), 2, 9);
+    const topMin = clamp(((headerBottom + 28) / viewportHeight) * 100, 18, 42);
+    const topMax = clamp(((viewportHeight - bottomReserve) / viewportHeight) * 100, 68, 88);
+
+    return { lanes, limit: Math.min(18, lanes * 3), topMin, topMax };
+  }
+
+  function sampleMemories(limit) {
+    if (state.memories.length <= limit) return state.memories;
+
+    const step = state.memories.length / limit;
+    return Array.from({ length: limit }, (_, index) => state.memories[Math.floor(index * step)]);
+  }
+
+  function removeFieldMessage(el) {
+    const id = el.dataset.id;
+    const copies = state.copies.get(id);
+
+    if (copies) {
+      const remaining = copies.filter((copy) => copy !== el);
+      if (remaining.length > 0) state.copies.set(id, remaining);
+      else state.copies.delete(id);
+    }
+
+    el.remove();
+  }
+
+  function pruneField() {
+    if (usesListLayout()) return;
+
+    const { limit } = driftLayout();
+    const messages = [...els.field.querySelectorAll('.msg:not(.dupe):not(.once):not(.leaving)')];
+    const excess = messages.length - limit;
+    if (excess <= 0) return;
+
+    messages
+      .filter((el) => !el.classList.contains('fresh'))
+      .slice(0, excess)
+      .forEach((el) => {
+        el.classList.add('leaving');
+        window.setTimeout(() => removeFieldMessage(el), 600);
+      });
+  }
+
   function renderField() {
     els.field.querySelectorAll('.msg').forEach((el) => el.remove());
     state.copies.clear();
 
-    state.memories.forEach((memory, index) => {
-      const spread = (index * 0.61803398875) % 1;
-      spawn(memory, { top: clamp(22 + spread * 60 + rnd(-2, 2), 20, 84) });
+    if (usesListLayout()) {
+      state.memories.forEach((memory) => spawn(memory));
+      return;
+    }
+
+    if (state.memories.length === 0) return;
+
+    const { lanes, limit, topMin, topMax } = driftLayout();
+    const memories = sampleMemories(limit);
+    const laneDurations = new Map();
+    const laneCounts = new Map();
+
+    memories.forEach((memory, index) => {
+      const lane = index % lanes;
+      laneCounts.set(lane, (laneCounts.get(lane) || 0) + 1);
     });
 
-    if (!reduceMotion.matches && window.innerWidth > 680 && state.memories.length > 0) {
-      const target = Math.min(18, Math.max(6, Math.ceil(state.memories.length * 1.3)));
-      let guard = 0;
+    memories.forEach((memory, index) => {
+      const lane = index % lanes;
+      const pass = Math.floor(index / lanes);
+      const laneCount = laneCounts.get(lane);
+      const top = clamp(
+        topMin + ((lane + 0.5) / lanes) * (topMax - topMin) + rnd(-0.3, 0.3),
+        topMin,
+        topMax,
+      );
+      const el = spawn(memory, { top });
+      let duration = parseFloat(el.style.getPropertyValue('--dur')) || 100;
 
-      while (els.field.querySelectorAll('.msg').length < target && guard < target * 3) {
-        const memory = state.memories[guard % state.memories.length];
-        spawn(memory, { dupe: true, top: rnd(22, 82) });
-        guard += 1;
-      }
-    }
+      // Messages in a lane share a speed and are spaced evenly around the
+      // drift path, so they never cross over each other.
+      if (pass === 0) laneDurations.set(lane, duration);
+      else duration = laneDurations.get(lane) || duration;
+
+      const fraction = (0.08 + lane * 0.13 + pass / laneCount) % 1;
+      el.style.setProperty('--dur', `${duration}s`);
+      el.style.setProperty('--delay', `${-duration * fraction}s`);
+    });
   }
 
   function updateCount() {
@@ -245,6 +327,7 @@
     els.field.setAttribute('aria-busy', 'true');
     els.field.querySelectorAll('.msg').forEach((el) => el.remove());
     state.copies.clear();
+    closeResults({ immediate: true });
     setFieldState({ kind: 'loading', message: 'Gathering memories\u2026' });
 
     try {
@@ -298,17 +381,85 @@
      Search
      ------------------------------------------------------------- */
 
-  function applySearch(rawValue) {
-    const term = rawValue.trim();
-    const normalized = fold(term);
-    const searching = normalized.length > 0;
+  function updateResultsOffset() {
+    const header = document.querySelector('.site-header');
+    const headerBottom = header?.getBoundingClientRect().bottom || 0;
+    els.results.style.setProperty('--results-top', `${Math.round(Math.max(150, headerBottom + 18))}px`);
+  }
 
-    state.search = normalized;
-    els.clr.hidden = rawValue.length === 0;
-    document.body.classList.toggle('searching', searching);
-    els.field.scrollTop = 0;
+  function createResultCard(memory, index) {
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = 'result enter';
+    card.dataset.id = String(memory.id);
+    card.style.setProperty('--enter-delay', `${Math.min(index * 18, 480)}ms`);
+    card.setAttribute('aria-label', `Memory for ${labelFor(memory)}: ${memory.text}`);
 
-    // Put every primary message back where it started before applying a new search.
+    const inner = document.createElement('span');
+    inner.className = 'in';
+
+    const text = document.createElement('span');
+    text.className = 'text';
+    text.textContent = memory.text;
+
+    const forLine = document.createElement('span');
+    forLine.className = 'for';
+    forLine.textContent = `for ${labelFor(memory)}`;
+
+    inner.append(text, forLine);
+    card.append(inner);
+    card.addEventListener('click', () => showMemory(memory));
+    card.addEventListener('animationend', (event) => {
+      if (event.animationName === 'result-in') card.classList.remove('enter');
+    }, { once: true });
+
+    return card;
+  }
+
+  function renderResults(matches) {
+    els.resultsInner.classList.toggle('sparse', matches.length <= 6);
+
+    const existing = new Map(
+      [...els.resultsInner.querySelectorAll('.result')].map((card) => [card.dataset.id, card]),
+    );
+    const fragment = document.createDocumentFragment();
+
+    matches.forEach((memory, index) => {
+      const key = String(memory.id);
+      let card = existing.get(key);
+
+      if (card) {
+        card.classList.remove('enter');
+        existing.delete(key);
+      } else {
+        card = createResultCard(memory, index);
+      }
+
+      fragment.append(card);
+    });
+
+    existing.forEach((card) => card.remove());
+    els.resultsInner.append(fragment);
+  }
+
+  function openResults(matches, { resetScroll = false } = {}) {
+    window.clearTimeout(resultsTimer);
+    resultsTimer = null;
+    resultsResetOnClose = false;
+    els.results.classList.remove('closing');
+
+    if (!state.resultsOpen) {
+      updateResultsOffset();
+      els.results.hidden = false;
+      state.resultsOpen = true;
+      document.body.classList.add('results-open');
+    }
+
+    renderResults(matches);
+    if (resetScroll) els.results.scrollTop = 0;
+  }
+
+  function resetSearchPresentation() {
     state.memories.forEach((memory) => {
       const el = state.copies.get(memory.id)?.[0];
       if (!el) return;
@@ -316,20 +467,85 @@
       el.classList.remove('match');
       el.removeAttribute('aria-hidden');
       el.tabIndex = 0;
+    });
+  }
 
-      if (el.dataset.baseTop !== undefined) {
-        el.style.top = el.dataset.baseTop;
-        delete el.dataset.baseTop;
+  function closeResults({ immediate = false, resetSources = false } = {}) {
+    window.clearTimeout(resultsTimer);
+    resultsTimer = null;
+    resultsResetOnClose = resetSources;
+
+    const finish = () => {
+      resultsTimer = null;
+      els.results.hidden = true;
+      els.results.classList.remove('closing');
+      els.resultsInner.replaceChildren();
+      document.body.classList.remove('results-open');
+      els.results.scrollTop = 0;
+      state.resultsOpen = false;
+
+      if (resultsResetOnClose) {
+        resultsResetOnClose = false;
+        resetSearchPresentation();
       }
-      if (el.dataset.baseDelay !== undefined) {
-        el.style.setProperty('--delay', el.dataset.baseDelay);
-        delete el.dataset.baseDelay;
+    };
+
+    if (!state.resultsOpen) {
+      finish();
+      return;
+    }
+
+    if (immediate || reduceMotion.matches) {
+      finish();
+      return;
+    }
+
+    els.results.classList.add('closing');
+    resultsTimer = window.setTimeout(finish, 300);
+  }
+
+  function updateSearchPresentation(matchIds, overlay) {
+    state.memories.forEach((memory) => {
+      const el = state.copies.get(memory.id)?.[0];
+      if (!el) return;
+
+      const match = matchIds.has(memory.id);
+      el.classList.toggle('match', match);
+
+      if (overlay) {
+        el.setAttribute('aria-hidden', 'true');
+        el.tabIndex = -1;
+      } else if (match) {
+        el.removeAttribute('aria-hidden');
+        el.tabIndex = 0;
+      } else {
+        el.setAttribute('aria-hidden', 'true');
+        el.tabIndex = -1;
       }
     });
+  }
+
+  function applySearch(rawValue) {
+    const term = rawValue.trim();
+    const normalized = fold(term);
+    const searching = normalized.length > 0;
+    const wasSearching = state.search.length > 0;
+    const changed = normalized !== state.search;
+
+    if (searching && !wasSearching) state.scrollBeforeSearch = els.field.scrollTop;
+
+    state.search = normalized;
+    els.clr.hidden = rawValue.length === 0;
+    els.hint.textContent = searching
+      ? 'Click to read \u00B7 clear search to return'
+      : 'Hover to pause \u00B7 click to read';
+    document.body.classList.toggle('searching', searching);
 
     if (!searching) {
+      els.field.scrollTop = state.scrollBeforeSearch;
       els.status.textContent = '';
       els.searchLeave.hidden = true;
+      closeResults({ resetSources: true });
       return;
     }
 
@@ -337,57 +553,29 @@
       memory.for_name && fold(memory.for_name).includes(normalized)
     ));
     const matchIds = new Set(matches.map((memory) => memory.id));
+    const overlay = !usesListLayout();
 
-    // Dim and remove non-matches from the accessibility tree.
-    state.memories.forEach((memory) => {
-      if (matchIds.has(memory.id)) return;
-      const el = state.copies.get(memory.id)?.[0];
-      if (!el) return;
-      el.setAttribute('aria-hidden', 'true');
-      el.tabIndex = -1;
-    });
-
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-    const narrow = viewportWidth < 700;
-    const count = matches.length;
-    const columns = narrow || count <= 1 ? 1 : Math.min(2, count);
-    const rows = Math.max(1, Math.ceil(count / columns));
-    const headerBottom = document.querySelector('.site-header')?.getBoundingClientRect().bottom || 0;
-    const topMin = clamp(((headerBottom + 14) / viewportHeight) * 100, 20, 54);
-    const topMax = 80;
-    const cellWidth = viewportWidth / columns;
-
-    matches.forEach((memory, index) => {
-      const el = state.copies.get(memory.id)?.[0];
-      if (!el) return;
-
-      el.classList.add('match');
-      el.removeAttribute('aria-hidden');
-      el.tabIndex = 0;
-
-      if (el.dataset.baseTop === undefined) el.dataset.baseTop = el.style.top;
-      if (el.dataset.baseDelay === undefined) el.dataset.baseDelay = el.style.getPropertyValue('--delay');
-
-      const row = index % rows;
-      const column = Math.floor(index / rows);
-      const width = el.offsetWidth || Math.min(560, viewportWidth * 0.78);
-      const targetCenter = (column + 0.5) * cellWidth;
-      const left = clamp(targetCenter - width / 2, 14, viewportWidth - width - 14);
-      const fraction = (viewportWidth - left) / (viewportWidth + width * 1.1);
-      const top = topMin + ((row + 0.5) / rows) * (topMax - topMin);
-      const duration = parseFloat(el.style.getPropertyValue('--dur')) || 100;
-
-      el.style.top = `${top}%`;
-      el.style.setProperty('--delay', `${-duration * fraction}s`);
-    });
+    updateSearchPresentation(matchIds, overlay);
 
     if (matches.length === 0) {
       els.status.textContent = `No memories found for \u201C${term}\u201D.`;
       els.searchLeave.hidden = false;
     } else {
-      els.status.textContent = `${plural(matches.length, 'memory', 'memories')} found for \u201C${term}\u201D`;
+      const scrollHint = matches.length > 6 ? ' \u00B7 scroll to read them all' : '';
+      els.status.textContent = `${plural(matches.length, 'memory', 'memories')} found for \u201C${term}\u201D${scrollHint}`;
       els.searchLeave.hidden = true;
+    }
+
+    if (overlay) {
+      if (matches.length > 0) {
+        updateResultsOffset();
+        openResults(matches, { resetScroll: changed });
+      } else {
+        closeResults();
+      }
+    } else {
+      closeResults({ immediate: true });
+      if (changed) els.field.scrollTop = 0;
     }
   }
 
@@ -677,6 +865,7 @@
 
       if (wasLoaded) {
         spawn(data, { fresh: true, top: rnd(26, 74) });
+        pruneField();
         els.field.scrollTop = 0;
       }
 
@@ -703,6 +892,17 @@
     els.toast.classList.add('show');
     window.clearTimeout(toastTimer);
     toastTimer = window.setTimeout(() => els.toast.classList.remove('show'), 4200);
+  }
+
+  function handleLayoutChange() {
+    const nextListLayout = usesListLayout();
+
+    if (nextListLayout !== lastListLayout) {
+      lastListLayout = nextListLayout;
+      renderField();
+    }
+
+    if (state.search) applySearch(els.q.value);
   }
 
   function bindEvents() {
@@ -764,9 +964,8 @@
 
     document.addEventListener('keydown', onKeydown);
 
-    window.addEventListener('resize', () => {
-      if (state.search) applySearch(els.q.value);
-    });
+    window.addEventListener('resize', handleLayoutChange);
+    reduceMotion.addEventListener('change', handleLayoutChange);
   }
 
   function init() {

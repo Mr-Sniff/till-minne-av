@@ -155,11 +155,11 @@ rm -f db/memorial.db db/memorial.db-shm db/memorial.db-wal
 
 ## Frontend notes
 
-- The field loads up to 500 memories and filters by remembered name in the browser. The API also supports `q` for future server-side search.
-- When a search is active, matching memories pause and arrange themselves into a readable grid; non-matches fade back.
+- The field loads up to 500 memories and filters by remembered name in the browser. On desktop it drifts a viewport-sized sample so messages stay readable instead of piling up; search still reaches every loaded memory. The API also supports `q` for future server-side search.
+- A few search results settle into a centered grid. Larger result sets slide into a scrollable two-column grid, so every match is reachable. Clearing the search fades the results away and returns to the drift.
 - Clicking a memory opens its full text, byline, and relative date.
 - The form's "Into the void" option never calls the API.
-- `prefers-reduced-motion` turns the drifting field into a normal, scrollable list, and narrow screens use the same readable list layout.
+- `prefers-reduced-motion` turns the drifting field into a normal, scrollable list, and narrow screens use the same readable list layout. Both list modes show every loaded memory.
 - Dialogs trap focus, Escape closes them, and messages are real buttons for keyboard users.
 - No frontend build tools are required.
 
