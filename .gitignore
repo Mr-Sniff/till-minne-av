@@ -1,0 +1,16 @@
+# Bundler
+/.bundle/
+/vendor/bundle/
+
+# SQLite database files
+/db/*.db
+/db/*.db-shm
+/db/*.db-wal
+
+# Local environment
+.env
+.env.*
+
+# OS / editor
+.DS_Store
+*.swp
