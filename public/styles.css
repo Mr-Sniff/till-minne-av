@@ -33,6 +33,7 @@
   --serif: "Cormorant Garamond", Georgia, "Times New Roman", serif;
   --sans: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
   --ease: cubic-bezier(.2, .7, .2, 1);
+  --bottom-space: 130px;
 }
 
 :root[data-theme="light"] {
@@ -89,7 +90,7 @@ body {
     radial-gradient(ellipse 75% 55% at 50% 36%, var(--glow), transparent 66%),
     radial-gradient(ellipse 55% 45% at 12% 88%, var(--glow-2), transparent 70%),
     radial-gradient(ellipse 40% 35% at 92% 12%, var(--glow-2), transparent 70%),
-    linear-gradient(180deg, var(--bg-1), var(--bg-2) 58%, var(--bg-3));
+    linear-gradient(180deg, var(--bg-1), var(--bg-2) 58%, var(--bg-3) calc(100% - var(--bottom-space)));
   color: var(--text);
   font-family: var(--sans);
   font-size: 15px;
@@ -169,8 +170,10 @@ body {
   pointer-events: none;
 }
 
-/* While searching, keep the list from showing through the fixed header. */
-body.searching .site-header::before {
+/* While searching or scrolling, keep the drifting rows from showing
+   through the fixed header. */
+body.searching .site-header::before,
+body.field-scrolled .site-header::before {
   background: linear-gradient(180deg, var(--bg-1) 0%, var(--bg-1) 64%, transparent 100%);
 }
 
@@ -580,11 +583,50 @@ body.searching .site-header::before {
 
 .field {
   position: fixed;
-  inset: 0;
-  overflow: hidden;
+  top: 0;
+  right: 0;
+  bottom: var(--bottom-space);
+  left: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
   outline: none;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+
+.field::-webkit-scrollbar {
+  width: 8px;
+}
+
+.field::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.field::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: var(--line-strong);
+}
+
+.field-track {
+  position: relative;
+  width: 100%;
+  min-height: 100%;
   -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 7%, #000 93%, transparent 100%);
   mask-image: linear-gradient(90deg, transparent 0, #000 7%, #000 93%, transparent 100%);
+}
+
+/* Softens the drifting text just above the fixed bottom controls. */
+body::after {
+  content: "";
+  position: fixed;
+  right: 0;
+  bottom: var(--bottom-space);
+  left: 0;
+  z-index: 2;
+  height: 56px;
+  background: linear-gradient(180deg, transparent, var(--bg-3));
+  pointer-events: none;
 }
 
 .msg {
@@ -722,6 +764,18 @@ body.field-paused .msg .in {
   animation-play-state: paused;
 }
 
+.msg.offscreen,
+.msg.offscreen .in {
+  animation-play-state: paused;
+}
+
+@media (hover: hover) {
+  .msg:hover,
+  .msg:hover .in {
+    animation-play-state: paused;
+  }
+}
+
 body.searching .msg:not(.match) {
   pointer-events: none;
 }
@@ -780,7 +834,7 @@ body.results-open .msg.match {
    --------------------------------------------------------------- */
 
 .field-state {
-  position: absolute;
+  position: fixed;
   inset: 0;
   z-index: 5;
   display: flex;
@@ -1330,6 +1384,10 @@ body.results-open .msg.match {
    --------------------------------------------------------------- */
 
 @media (max-width: 680px) {
+  :root {
+    --bottom-space: 152px;
+  }
+
   .site-header {
     padding-top: max(16px, env(safe-area-inset-top, 0px));
   }
@@ -1448,6 +1506,14 @@ body.results-open .msg.match {
 
 @media (max-width: 680px) and (prefers-reduced-motion: no-preference) {
   .field {
+    scrollbar-width: none;
+  }
+
+  .field::-webkit-scrollbar {
+    display: none;
+  }
+
+  .field-track {
     -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 9%, #000 91%, transparent 100%);
     mask-image: linear-gradient(90deg, transparent 0, #000 9%, #000 91%, transparent 100%);
   }
@@ -1504,6 +1570,10 @@ body.results-open .msg.match {
     padding: 250px 20px 150px;
     -webkit-mask-image: none;
     mask-image: none;
+  }
+
+  .field-track {
+    display: contents;
   }
 
   .msg {

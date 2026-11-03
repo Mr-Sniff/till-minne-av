@@ -219,7 +219,7 @@ rm -f db/memorial.db db/memorial.db-shm db/memorial.db-wal
 ## Frontend
 
 - Gränssnittet är som standard på svenska. Språkmenyn uppe till höger byter till engelska och kommer ihåg valet i `localStorage`; minnestexterna visas som de skrevs. Temaikonen intill växlar mellan mörkt och ljust tema, sparar valet i `localStorage` och följer systemets inställning tills du väljer själv.
-- Fältet laddar upp till 500 minnen och filtrerar på namnet i webbläsaren. Ett urval driver över skärmen i flera djup; på mobilen är urvalet mindre och rörelsen långsammare. Sökningen når ändå alla laddade minnen. API:t stöder också `q` för framtida sökning på servern.
+- Fältet laddar upp till 500 minnen och filtrerar på namnet i webbläsaren. Minnesrader driver över skärmen i flera djup; på mobilen är raderna färre och rörelsen långsammare. Scrolla nedåt för att se fler rader – nästa sats laddas när du når botten, och rader utanför skärmen pausas. Sökningen når ändå alla laddade minnen. API:t stöder också `q` för framtida sökning på servern.
 - På touchskärmar pausas driften medan fingret vilar på fältet, så att ett minne går att trycka på.
 - Sökträffar läggs i ett centrerat rutnät: två kolumner på desktop och en kolumn på mobil. Större träfflistor blir rullbara. När sökningen rensas tonar träffarna bort och fältet börjar driva igen.
 - Klick på ett minne öppnar hela texten, signaturen och det relativa datumet.

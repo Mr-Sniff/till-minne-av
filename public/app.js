@@ -176,6 +176,7 @@
 
   const els = {
     field: document.getElementById('field'),
+    fieldTrack: document.getElementById('fieldTrack'),
     fieldState: document.getElementById('fieldState'),
     q: document.getElementById('q'),
     clr: document.getElementById('clr'),
@@ -215,6 +216,8 @@
     names: [],
     total: 0,
     copies: new Map(),
+    rendered: 0,
+    freshId: null,
     search: '',
     scrollBeforeSearch: 0,
     loaded: false,
@@ -246,9 +249,13 @@
   let resultsTimer = null;
   let resultsResetOnClose = false;
   let voidCounter = 0;
+  let messageObserver = null;
+  let scrollLoadTimer = null;
 
   const usesListLayout = () => reduceMotion.matches;
   let lastListLayout = usesListLayout();
+  let lastCompact = window.innerWidth <= 680;
+  let lastViewportHeight = window.innerHeight;
 
   /* -------------------------------------------------------------
      Field state (loading / empty / error)
@@ -444,11 +451,12 @@
      ------------------------------------------------------------- */
 
   function spawn(memory, options = {}) {
+    const layout = driftLayout();
     const {
       dupe = false,
       fresh = false,
       once = false,
-      top = rnd(24, 82),
+      top = layout.topInset + rnd(0, layout.lanes * layout.laneHeight),
     } = options;
 
     const depthRoll = Math.random();
@@ -459,7 +467,7 @@
     el.type = 'button';
     el.className = `msg d${depth}${dupe ? ' dupe' : ''}${fresh ? ' fresh' : ''}${once ? ' once void' : ''}`;
     el.dataset.id = String(memory.id);
-    el.style.top = `${top}%`;
+    el.style.top = `${top}px`;
     el.style.setProperty('--dur', `${duration}s`);
     el.style.setProperty('--bob', `${rnd(5, 9)}s`);
     el.style.setProperty('--by', `${rnd(-14, 14)}px`);
@@ -490,17 +498,21 @@
 
     if (once) {
       el.addEventListener('animationend', (event) => {
-        if (event.animationName === 'drift') el.remove();
+        if (event.animationName !== 'drift') return;
+        messageObserver?.unobserve(el);
+        el.remove();
       });
     }
 
     const listLayout = usesListLayout();
 
     if (fresh && listLayout) {
-      els.field.prepend(el);
+      els.fieldTrack.prepend(el);
     } else {
-      els.field.append(el);
+      els.fieldTrack.append(el);
     }
+
+    messageObserver?.observe(el);
 
     if (!once) {
       const copies = state.copies.get(memory.id) || [];
@@ -522,7 +534,10 @@
     if (once && listLayout) {
       window.setTimeout(() => {
         el.classList.add('leaving');
-        window.setTimeout(() => el.remove(), 600);
+        window.setTimeout(() => {
+          messageObserver?.unobserve(el);
+          el.remove();
+        }, 600);
       }, 9000);
     }
 
@@ -530,63 +545,87 @@
   }
 
   function driftLayout() {
-    const viewportHeight = window.innerHeight;
+    const viewportHeight = els.field.clientHeight || window.innerHeight;
     const compact = window.innerWidth <= 680;
     const headerBottom = document.querySelector('.site-header')?.getBoundingClientRect().bottom || 0;
-    const bottomReserve = compact ? 152 : 130;
-    const available = Math.max(240, viewportHeight - headerBottom - bottomReserve);
+    const topInset = Math.round(headerBottom + 28);
+    const laneHeight = compact ? 106 : 122;
+    const available = Math.max(laneHeight * 2, viewportHeight - topInset);
     const lanes = clamp(
-      Math.floor(available / (compact ? 106 : 112)),
+      Math.floor(available / laneHeight),
       2,
       compact ? 4 : 9,
     );
-    const topMin = clamp(((headerBottom + 28) / viewportHeight) * 100, 18, 42);
-    const topMax = clamp(((viewportHeight - bottomReserve) / viewportHeight) * 100, 68, 88);
-    const limit = compact ? Math.min(8, lanes * 2) : Math.min(18, lanes * 3);
+    const perRow = compact ? 2 : 3;
 
-    return { lanes, limit, topMin, topMax };
+    return {
+      compact,
+      topInset,
+      laneHeight,
+      lanes,
+      perRow,
+      limit: lanes * perRow,
+    };
   }
 
-  function sampleMemories(limit) {
-    if (state.memories.length <= limit) return state.memories;
+  function trackHeight(layout = driftLayout()) {
+    const rows = Math.ceil(state.rendered / layout.perRow);
+    const viewportHeight = els.field.clientHeight || window.innerHeight;
 
-    const step = state.memories.length / limit;
-    return Array.from({ length: limit }, (_, index) => state.memories[Math.floor(index * step)]);
+    return Math.max(
+      viewportHeight,
+      layout.topInset + rows * layout.laneHeight + 64,
+    );
   }
 
-  function removeFieldMessage(el) {
-    const id = el.dataset.id;
-    const copies = state.copies.get(id);
-
-    if (copies) {
-      const remaining = copies.filter((copy) => copy !== el);
-      if (remaining.length > 0) state.copies.set(id, remaining);
-      else state.copies.delete(id);
-    }
-
-    el.remove();
-  }
-
-  function pruneField() {
+  function appendFieldBatch() {
     if (usesListLayout()) return;
 
-    const { limit } = driftLayout();
-    const messages = [...els.field.querySelectorAll('.msg:not(.dupe):not(.once):not(.leaving)')];
-    const excess = messages.length - limit;
-    if (excess <= 0) return;
+    const remaining = state.memories.length - state.rendered;
+    if (remaining <= 0) return;
 
-    messages
-      .filter((el) => !el.classList.contains('fresh'))
-      .slice(0, excess)
-      .forEach((el) => {
-        el.classList.add('leaving');
-        window.setTimeout(() => removeFieldMessage(el), 600);
+    const layout = driftLayout();
+    const count = Math.min(layout.limit, remaining);
+    const startRow = Math.ceil(state.rendered / layout.perRow);
+    const rowDurations = new Map();
+
+    for (let index = 0; index < count; index += 1) {
+      const memory = state.memories[state.rendered + index];
+      const slot = index % layout.perRow;
+      const row = startRow + Math.floor(index / layout.perRow);
+
+      if (!rowDurations.has(row)) {
+        const depthRoll = Math.random();
+        const depth = depthRoll < 0.3 ? 0 : depthRoll < 0.72 ? 1 : 2;
+        rowDurations.set(row, [150, 105, 78][depth] * rnd(0.85, 1.2));
+      }
+
+      const duration = rowDurations.get(row);
+      const el = spawn(memory, {
+        top: layout.topInset + row * layout.laneHeight + 4,
+        fresh: String(memory.id) === String(state.freshId),
       });
+
+      el.style.setProperty('--dur', `${duration}s`);
+
+      if (!el.classList.contains('fresh')) {
+        const fraction = (0.14 + slot / layout.perRow + (row % 3) * 0.11) % 1;
+        el.style.setProperty('--delay', `${-duration * fraction}s`);
+      }
+    }
+
+    state.rendered += count;
+    els.fieldTrack.style.height = `${trackHeight(layout)}px`;
   }
 
   function renderField() {
-    els.field.querySelectorAll('.msg').forEach((el) => el.remove());
+    messageObserver?.disconnect();
+    els.fieldTrack.querySelectorAll('.msg').forEach((el) => el.remove());
     state.copies.clear();
+    state.rendered = 0;
+    els.field.scrollTop = 0;
+    document.body.classList.remove('field-scrolled');
+    els.fieldTrack.style.height = `${els.field.clientHeight || window.innerHeight}px`;
 
     if (usesListLayout()) {
       state.memories.forEach((memory) => spawn(memory));
@@ -595,37 +634,28 @@
 
     if (state.memories.length === 0) return;
 
-    const { lanes, limit, topMin, topMax } = driftLayout();
-    const memories = sampleMemories(limit);
-    const laneDurations = new Map();
-    const laneCounts = new Map();
+    // Start with two screens so the first scroll already reveals more.
+    appendFieldBatch();
+    while (
+      state.rendered < state.memories.length
+      && els.field.scrollHeight <= els.field.clientHeight + 80
+    ) {
+      appendFieldBatch();
+    }
+  }
 
-    memories.forEach((memory, index) => {
-      const lane = index % lanes;
-      laneCounts.set(lane, (laneCounts.get(lane) || 0) + 1);
-    });
+  function maybeLoadMore() {
+    if (!state.loaded || state.search || usesListLayout()) return;
 
-    memories.forEach((memory, index) => {
-      const lane = index % lanes;
-      const pass = Math.floor(index / lanes);
-      const laneCount = laneCounts.get(lane);
-      const top = clamp(
-        topMin + ((lane + 0.5) / lanes) * (topMax - topMin) + rnd(-0.3, 0.3),
-        topMin,
-        topMax,
-      );
-      const el = spawn(memory, { top });
-      let duration = parseFloat(el.style.getPropertyValue('--dur')) || 100;
+    let guard = 0;
 
-      // Messages in a lane share a speed and are spaced evenly around the
-      // drift path, so they never cross over each other.
-      if (pass === 0) laneDurations.set(lane, duration);
-      else duration = laneDurations.get(lane) || duration;
+    while (guard < 4 && state.rendered < state.memories.length) {
+      const { scrollTop, clientHeight, scrollHeight } = els.field;
+      if (scrollTop + clientHeight < scrollHeight - 420) break;
 
-      const fraction = (0.08 + lane * 0.13 + pass / laneCount) % 1;
-      el.style.setProperty('--dur', `${duration}s`);
-      el.style.setProperty('--delay', `${-duration * fraction}s`);
-    });
+      appendFieldBatch();
+      guard += 1;
+    }
   }
 
   function updateCount() {
@@ -651,8 +681,10 @@
   async function loadMemories() {
     state.loaded = false;
     els.field.setAttribute('aria-busy', 'true');
-    els.field.querySelectorAll('.msg').forEach((el) => el.remove());
+    els.fieldTrack.querySelectorAll('.msg').forEach((el) => el.remove());
+    messageObserver?.disconnect();
     state.copies.clear();
+    state.rendered = 0;
     closeResults({ immediate: true });
     setFieldState({ kind: 'loading', messageKey: 'loading' });
 
@@ -867,6 +899,7 @@
 
     if (!searching) {
       els.field.scrollTop = state.scrollBeforeSearch;
+      document.body.classList.toggle('field-scrolled', state.scrollBeforeSearch > 10);
       els.status.textContent = '';
       els.searchLeave.hidden = true;
       closeResults({ resetSources: true });
@@ -1158,8 +1191,8 @@
         els.q.value = '';
         applySearch('');
       }
-      spawn(memory, { once: true, fresh: true, top: rnd(28, 72) });
       els.field.scrollTop = 0;
+      spawn(memory, { once: true, fresh: true });
       toast(t('voidToast'));
       return;
     }
@@ -1199,7 +1232,7 @@
           renderField();
         }
       } else {
-        state.memories.push(data);
+        state.memories.unshift(data);
         state.total += 1;
         if (data.for_name) state.names = [...new Set([...state.names, data.for_name])];
       }
@@ -1214,9 +1247,9 @@
       }
 
       if (wasLoaded) {
-        spawn(data, { fresh: true, top: rnd(26, 74) });
-        pruneField();
-        els.field.scrollTop = 0;
+        state.freshId = data.id;
+        renderField();
+        state.freshId = null;
       }
 
       updateCount();
@@ -1246,12 +1279,21 @@
 
   function handleLayoutChange() {
     const nextListLayout = usesListLayout();
+    const nextCompact = window.innerWidth <= 680;
+    const viewportChanged = nextCompact !== lastCompact
+      || Math.abs(window.innerHeight - lastViewportHeight) > 140;
 
-    if (nextListLayout !== lastListLayout) {
+    if (nextListLayout !== lastListLayout || viewportChanged) {
       lastListLayout = nextListLayout;
+      lastCompact = nextCompact;
+      lastViewportHeight = window.innerHeight;
       renderField();
+
+      if (state.search) applySearch(els.q.value);
+      return;
     }
 
+    lastViewportHeight = window.innerHeight;
     if (state.search) applySearch(els.q.value);
   }
 
@@ -1287,6 +1329,23 @@
       if (storedTheme()) return;
       applyTheme(event.matches ? 'light' : 'dark', { persist: false });
     });
+
+    if ('IntersectionObserver' in window) {
+      messageObserver = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          entry.target.classList.toggle('offscreen', !entry.isIntersecting);
+        });
+      }, {
+        root: els.field,
+        rootMargin: '240px 3000px',
+      });
+    }
+
+    els.field.addEventListener('scroll', () => {
+      document.body.classList.toggle('field-scrolled', els.field.scrollTop > 10);
+      window.clearTimeout(scrollLoadTimer);
+      scrollLoadTimer = window.setTimeout(maybeLoadMore, 120);
+    }, { passive: true });
 
     els.q.addEventListener('input', () => {
       window.clearTimeout(searchTimer);
