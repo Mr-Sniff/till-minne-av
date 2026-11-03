@@ -41,6 +41,32 @@ För att använda en annan databasfil:
 DATABASE_PATH=/tmp/till-minne-av.db bundle exec ruby app.rb
 ```
 
+## Köra i GitHub Codespaces
+
+Repot har en devcontainer, så appen kan köras i GitHub Codespaces utan lokal Ruby-installation.
+
+1. Öppna repot på GitHub och välj **Code → Codespaces → Create codespace on main**.
+2. Första gången installeras gemmen automatiskt, och servern startar på port 4567.
+3. Öppna fliken **Ports** och klicka på länken för port 4567. Porten är satt till **Public**, så alla med länken kan öppna sidan.
+
+Om servern inte skulle köra:
+
+```bash
+bundle exec ruby app.rb
+```
+
+Loggen från bakgrundsstarten finns i `/tmp/till-minne-av.log`.
+
+### Lagring och livslängd
+
+`db/memorial.db` ligger i codespacens arbetsyta och finns kvar när codespacen stoppas och startas igen. Filen försvinner om codespacen raderas – GitHub tar som standard bort codespaces efter 30 dagars inaktivitet. Säkerhetskopiera databasen så här:
+
+```bash
+gh codespace cp -e 'remote:db/memorial.db' ./db/memorial.db
+```
+
+En codespace är alltså en tillfällig server. När den stoppas (efter 30 minuters inaktivitet som standard) slutar sidan svara. För en permanent sajt behövs en host som Render eller Fly.io med beständig lagring.
+
 ### Miljövariabler
 
 | Variabel | Standard | Syfte |
@@ -59,6 +85,7 @@ DATABASE_PATH=/tmp/till-minne-av.db bundle exec ruby app.rb
 ├── app.rb                  Sinatra-app och JSON-rutter
 ├── config.ru               Rack-ingång
 ├── Gemfile
+├── .devcontainer/          GitHub Codespaces-konfiguration
 ├── db/
 │   ├── schema.sql          SQLite-schema
 │   ├── seeds.rb            Prototypens ursprungliga minnen

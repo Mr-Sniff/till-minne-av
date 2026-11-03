@@ -1,0 +1,22 @@
+{
+  "name": "Till minne av",
+  "image": "mcr.microsoft.com/devcontainers/ruby:1-3.3-bookworm",
+  "containerEnv": {
+    "HOST": "0.0.0.0"
+  },
+  "postCreateCommand": "bundle config set --local path vendor/bundle && bundle install",
+  "postStartCommand": "bash .devcontainer/start.sh",
+  "forwardPorts": [4567],
+  "portsAttributes": {
+    "4567": {
+      "label": "Till minne av",
+      "onAutoForward": "openBrowser",
+      "visibility": "public"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": ["shopify.ruby-lsp"]
+    }
+  }
+}
