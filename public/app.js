@@ -11,6 +11,7 @@
   const MAX_NAME = 80;
   const LOAD_LIMIT = 500;
   const LANG_KEY = 'till-minne-language';
+  const THEME_KEY = 'till-minne-theme';
 
   const translations = {
     sv: {
@@ -86,6 +87,8 @@
       language: 'Språk',
       swedish: 'Svenska',
       english: 'English',
+      switchToLight: 'Byt till ljust tema',
+      switchToDark: 'Byt till mörkt tema',
     },
     en: {
       title: 'In memory of',
@@ -160,6 +163,8 @@
       language: 'Language',
       swedish: 'Svenska',
       english: 'English',
+      switchToLight: 'Switch to light theme',
+      switchToDark: 'Switch to dark theme',
     },
   };
 
@@ -202,6 +207,7 @@
     langBtn: document.getElementById('langBtn'),
     langMenu: document.getElementById('langMenu'),
     langCode: document.getElementById('langCode'),
+    themeBtn: document.getElementById('themeBtn'),
   };
 
   const state = {
@@ -220,6 +226,8 @@
   };
 
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const systemTheme = window.matchMedia('(prefers-color-scheme: light)');
+  let theme = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
   const relativeTimeFormats = {
     sv: new Intl.RelativeTimeFormat('sv', { numeric: 'auto' }),
     en: new Intl.RelativeTimeFormat('en', { numeric: 'auto' }),
@@ -239,7 +247,7 @@
   let resultsResetOnClose = false;
   let voidCounter = 0;
 
-  const usesListLayout = () => reduceMotion.matches || window.innerWidth <= 680;
+  const usesListLayout = () => reduceMotion.matches;
   let lastListLayout = usesListLayout();
 
   /* -------------------------------------------------------------
@@ -354,6 +362,41 @@
     }
   }
 
+  function storedTheme() {
+    try {
+      const value = localStorage.getItem(THEME_KEY);
+      return value === 'light' || value === 'dark' ? value : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function updateThemeButton() {
+    const label = theme === 'light' ? t('switchToDark') : t('switchToLight');
+    els.themeBtn.setAttribute('aria-label', label);
+    els.themeBtn.title = label;
+  }
+
+  function applyTheme(next, { persist = true } = {}) {
+    theme = next === 'light' ? 'light' : 'dark';
+    document.documentElement.dataset.theme = theme;
+
+    if (persist) {
+      try {
+        localStorage.setItem(THEME_KEY, theme);
+      } catch {
+        // Storage may be unavailable; the theme still switches for this visit.
+      }
+    }
+
+    const themeColor = theme === 'light' ? '#f6f0e4' : '#080b14';
+    document.querySelectorAll('meta[name="theme-color"]').forEach((meta) => {
+      meta.content = themeColor;
+    });
+
+    updateThemeButton();
+  }
+
   function setLanguageMenu(open) {
     els.langMenu.hidden = !open;
     els.langBtn.setAttribute('aria-expanded', String(open));
@@ -379,6 +422,7 @@
     els.langCode.textContent = lang === 'sv' ? 'SV' : 'EN';
     els.langBtn.setAttribute('aria-label', `${t('language')}: ${lang === 'sv' ? t('swedish') : t('english')}`);
     els.langBtn.title = t('language');
+    updateThemeButton();
     els.langMenu.querySelectorAll('[data-lang]').forEach((option) => {
       option.setAttribute('aria-checked', String(option.dataset.lang === lang));
     });
@@ -487,14 +531,20 @@
 
   function driftLayout() {
     const viewportHeight = window.innerHeight;
+    const compact = window.innerWidth <= 680;
     const headerBottom = document.querySelector('.site-header')?.getBoundingClientRect().bottom || 0;
-    const bottomReserve = 130;
+    const bottomReserve = compact ? 152 : 130;
     const available = Math.max(240, viewportHeight - headerBottom - bottomReserve);
-    const lanes = clamp(Math.floor(available / 112), 2, 9);
+    const lanes = clamp(
+      Math.floor(available / (compact ? 106 : 112)),
+      2,
+      compact ? 4 : 9,
+    );
     const topMin = clamp(((headerBottom + 28) / viewportHeight) * 100, 18, 42);
     const topMax = clamp(((viewportHeight - bottomReserve) / viewportHeight) * 100, 68, 88);
+    const limit = compact ? Math.min(8, lanes * 2) : Math.min(18, lanes * 3);
 
-    return { lanes, limit: Math.min(18, lanes * 3), topMin, topMax };
+    return { lanes, limit, topMin, topMax };
   }
 
   function sampleMemories(limit) {
@@ -1206,6 +1256,38 @@
   }
 
   function bindEvents() {
+    let touchResumeTimer = null;
+
+    const pauseFieldForTouch = (event) => {
+      if (event.pointerType === 'mouse') return;
+      window.clearTimeout(touchResumeTimer);
+      document.body.classList.add('field-paused');
+    };
+
+    const resumeFieldAfterTouch = () => {
+      window.clearTimeout(touchResumeTimer);
+      touchResumeTimer = window.setTimeout(() => {
+        document.body.classList.remove('field-paused');
+      }, 140);
+    };
+
+    els.field.addEventListener('pointerdown', pauseFieldForTouch);
+    window.addEventListener('pointerup', resumeFieldAfterTouch);
+    window.addEventListener('pointercancel', resumeFieldAfterTouch);
+    window.addEventListener('blur', () => {
+      window.clearTimeout(touchResumeTimer);
+      document.body.classList.remove('field-paused');
+    });
+
+    els.themeBtn.addEventListener('click', () => {
+      applyTheme(theme === 'light' ? 'dark' : 'light');
+    });
+
+    systemTheme.addEventListener('change', (event) => {
+      if (storedTheme()) return;
+      applyTheme(event.matches ? 'light' : 'dark', { persist: false });
+    });
+
     els.q.addEventListener('input', () => {
       window.clearTimeout(searchTimer);
       searchTimer = window.setTimeout(() => applySearch(els.q.value), 110);
@@ -1313,6 +1395,7 @@
   }
 
   function init() {
+    applyTheme(storedTheme() || (systemTheme.matches ? 'light' : 'dark'), { persist: false });
     applyLanguage(readStoredLanguage(), { persist: false });
     bindEvents();
     loadMemories();

@@ -8,6 +8,19 @@
   <meta name="description" content="En stilla plats för små tankar om dem vi saknar.">
   <meta name="theme-color" content="#080b14" media="(prefers-color-scheme: dark)">
   <meta name="theme-color" content="#f6f0e4" media="(prefers-color-scheme: light)">
+  <script>
+    (() => {
+      let stored = null;
+      try { stored = localStorage.getItem('till-minne-theme'); } catch (_) {}
+      const theme = stored === 'light' || stored === 'dark'
+        ? stored
+        : (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.dataset.theme = theme;
+      document.querySelectorAll('meta[name="theme-color"]').forEach((meta) => {
+        meta.content = theme === 'light' ? '#f6f0e4' : '#080b14';
+      });
+    })();
+  </script>
   <link rel="icon"
     href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23080b14'/%3E%3Cpath d='M16 6.5l2 6.7 6.7 2-6.7 2-2 6.7-2-6.7-6.7-2 6.7-2z' fill='%23e9c46a'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -24,6 +37,18 @@
 
   <header class="site-header">
     <div class="lang-switch">
+      <button class="theme-btn" id="themeBtn" type="button" aria-label="Byt tema"
+        title="Byt tema">
+        <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.7" stroke-linecap="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="4"></circle>
+          <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path>
+        </svg>
+        <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"></path>
+        </svg>
+      </button>
       <button class="lang-btn" id="langBtn" type="button" aria-haspopup="menu" aria-controls="langMenu"
         aria-expanded="false" aria-label="Språk: Svenska">
         <svg class="lang-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
