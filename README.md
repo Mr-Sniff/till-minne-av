@@ -1,19 +1,19 @@
-# Remembered
+# Till minne av
 
-A quiet place for small thoughts about the ones we miss. Memories drift across the screen; visitors can search by the name of the person remembered, read a memory, or leave one of their own. A memory can be kept in the memorial or released "into the void" without being saved.
+En stilla plats för små tankar om dem vi saknar. Minnen driver över skärmen; besökare kan söka på namnet på personen som minns, läsa ett minne eller lämna ett eget. Ett minne kan sparas i minnesplatsen eller släppas "ut i tomheten" utan att sparas.
 
-This started as a single-file prototype. The original is preserved in git history. The frontend now lives in three files (`index.html`, `styles.css`, `app.js`) and the backend is a small Sinatra API backed by SQLite.
+Det började som en prototyp i en enda fil. Originalet finns kvar i git-historiken. Frontend ligger nu i tre filer (`index.html`, `styles.css` och `app.js`) och backend är ett litet Sinatra-API med SQLite.
 
-## Stack
+## Teknik
 
-- **Sinatra 4 + Puma** for the web server and JSON API
-- **SQLite** via the `sqlite3` gem
-- **Vanilla HTML, CSS and JavaScript** — no build step
-- **Google Fonts** (Cormorant Garamond and Inter) with system fallbacks
+- **Sinatra 4 + Puma** för webbserver och JSON-API
+- **SQLite** via `sqlite3`-gemet
+- **Ren HTML, CSS och JavaScript** – inget byggsteg
+- **Google Fonts** (Cormorant Garamond och Inter) med systemtypsnitt som reserv
 
-## Run it
+## Köra projektet
 
-You need Ruby 3.2+ and Bundler.
+Du behöver Ruby 3.2+ och Bundler.
 
 ```bash
 bundle config set --local path vendor/bundle
@@ -21,60 +21,60 @@ bundle install
 bundle exec ruby app.rb
 ```
 
-Open <http://127.0.0.1:4567>.
+Öppna <http://127.0.0.1:4567>.
 
-You can also run it through Rack:
+Du kan också köra via Rack:
 
 ```bash
 bundle exec rackup -p 4567
 ```
 
-On first boot the app creates `db/memorial.db` and seeds it with the prototype's demo memories. To start with an empty memorial:
+Vid första starten skapar appen `db/memorial.db` och fyller den med prototypens demominnen. För att börja med en tom minnesplats:
 
 ```bash
 SEED_DEMO=false bundle exec ruby app.rb
 ```
 
-To use a different database file:
+För att använda en annan databasfil:
 
 ```bash
-DATABASE_PATH=/tmp/remembered.db bundle exec ruby app.rb
+DATABASE_PATH=/tmp/till-minne-av.db bundle exec ruby app.rb
 ```
 
-### Environment variables
+### Miljövariabler
 
-| Variable | Default | Purpose |
+| Variabel | Standard | Syfte |
 | --- | --- | --- |
-| `HOST` | `127.0.0.1` | Bind address |
-| `PORT` | `4567` | HTTP port |
-| `DATABASE_PATH` | `db/memorial.db` | SQLite file location |
-| `SEED_DEMO` | unset | Set to `false` to skip demo memories |
-| `RATE_LIMIT` | `10` | Allowed POSTs per IP per window |
-| `RATE_WINDOW` | `600` | Rate-limit window in seconds |
+| `HOST` | `127.0.0.1` | Adress att lyssna på |
+| `PORT` | `4567` | HTTP-port |
+| `DATABASE_PATH` | `db/memorial.db` | Sökväg till SQLite-filen |
+| `SEED_DEMO` | ej satt | Sätt till `false` för att hoppa över demominnen |
+| `RATE_LIMIT` | `10` | Tillåtna POST-anrop per IP och tidsfönster |
+| `RATE_WINDOW` | `600` | Tidsfönstret för begränsningen i sekunder |
 
-## Project layout
+## Projektstruktur
 
 ```
 .
-├── app.rb                  Sinatra app and JSON routes
-├── config.ru               Rack entry point
+├── app.rb                  Sinatra-app och JSON-rutter
+├── config.ru               Rack-ingång
 ├── Gemfile
 ├── db/
-│   ├── schema.sql          SQLite schema
-│   ├── seeds.rb            Original prototype memories
-│   └── memorial.db         Created on first boot (gitignored)
+│   ├── schema.sql          SQLite-schema
+│   ├── seeds.rb            Prototypens ursprungliga minnen
+│   └── memorial.db         Skapas vid första starten (ignoreras av git)
 ├── lib/
-│   ├── database.rb         SQLite queries and serialization
-│   └── rate_limiter.rb     Small in-memory POST limiter
+│   ├── database.rb         SQLite-frågor och serialisering
+│   └── rate_limiter.rb     Liten begränsning av POST-anrop i minnet
 └── public/
-    ├── index.html          The three frontend files
+    ├── index.html          De tre frontendfilerna
     ├── styles.css
     └── app.js
 ```
 
 ## API
 
-All API responses are JSON. The frontend is same-origin, so no CORS layer is needed.
+Alla API-svar är JSON. Frontend ligger på samma origin, så något CORS-lager behövs inte.
 
 ### `GET /api/health`
 
@@ -84,18 +84,18 @@ All API responses are JSON. The frontend is same-origin, so no CORS layer is nee
 
 ### `GET /api/memories`
 
-Query parameters:
+Frågeparametrar:
 
-- `limit` — 1 to 500, default 500
-- `offset` — default 0
-- `q` — optional case-insensitive name search
+- `limit` – 1 till 500, standard 500
+- `offset` – standard 0
+- `q` – valfri sökning på namn, utan hänsyn till versaler och gemener
 
 ```json
 {
   "memories": [
     {
       "id": 1,
-      "text": "She hummed while she cooked...",
+      "text": "Hon nynnade medan hon lagade mat...",
       "for_name": "Margareta Lindqvist",
       "by_name": "Anna",
       "created_at": "2026-10-25T09:00:00Z"
@@ -114,26 +114,26 @@ Query parameters:
 curl -X POST http://127.0.0.1:4567/api/memories \
   -H 'Content-Type: application/json' \
   -d '{
-    "text": "You always saved me the last piece of cake.",
+    "text": "Du sparade alltid sista biten kaka till mig.",
     "for_name": "Mormor",
     "by_name": "Teo"
   }'
 ```
 
-Returns `201 Created` with the stored memory. Validation:
+Returnerar `201 Created` med det sparade minnet. Validering:
 
-- `text` is required, trimmed, and limited to 400 characters.
-- `for_name` and `by_name` are optional and limited to 80 characters.
-- The JSON body is limited to 8 KB.
-- Submissions are limited to 10 per IP per 10 minutes by default. The limiter is in-memory, so it resets when the process restarts.
+- `text` krävs, trimmas och får vara högst 400 tecken.
+- `for_name` och `by_name` är valfria och får vara högst 80 tecken.
+- JSON-kroppen får vara högst 8 kB.
+- Inskickningar begränsas till 10 per IP och 10 minuter som standard. Begränsningen sker i minnet, så den nollställs när processen startas om.
 
-## Privacy
+## Integritet
 
-The "keep their name private" and "send anonymously" options are handled in the browser: the name is **not sent to the server at all** when either option is checked. The database only stores names that were deliberately submitted. Missing names are rendered with the localized anonymous labels.
+Alternativen "Håll deras namn privat" och "Skicka anonymt" hanteras i webbläsaren: namnet skickas **inte alls till servern** när något av dem är ikryssat. Databasen lagrar bara namn som medvetet skickats in. Saknade namn visas med de översatta etiketterna för anonyma namn.
 
-The server never renders user text as HTML. The frontend inserts memories with `textContent`, so submitted text cannot inject markup.
+Servern renderar aldrig användartext som HTML. Frontend lägger in minnen med `textContent`, så inskickad text kan inte injicera markup.
 
-## Database
+## Databas
 
 ```sql
 CREATE TABLE memories (
@@ -145,29 +145,29 @@ CREATE TABLE memories (
 );
 ```
 
-The database uses WAL mode and a mutex around queries, which is enough for this single-process prototype.
+Databasen använder WAL-läge och en mutex runt frågorna, vilket räcker för den här prototypen med en enda process.
 
-To reset the local database:
+Så här återställer du den lokala databasen:
 
 ```bash
 rm -f db/memorial.db db/memorial.db-shm db/memorial.db-wal
 ```
 
-## Frontend notes
+## Frontend
 
-- The interface defaults to Swedish. The top-right language menu switches it to English and remembers the choice in `localStorage`; memory texts are shown as written.
-- The field loads up to 500 memories and filters by remembered name in the browser. On desktop it drifts a viewport-sized sample so messages stay readable instead of piling up; search still reaches every loaded memory. The API also supports `q` for future server-side search.
-- A few search results settle into a centered grid. Larger result sets slide into a scrollable two-column grid, so every match is reachable. Clearing the search fades the results away and returns to the drift.
-- Clicking a memory opens its full text, byline, and relative date.
-- The form's "Into the void" option never calls the API.
-- `prefers-reduced-motion` turns the drifting field into a normal, scrollable list, and narrow screens use the same readable list layout. Both list modes show every loaded memory.
-- Dialogs trap focus, Escape closes them, and messages are real buttons for keyboard users.
-- No frontend build tools are required.
+- Gränssnittet är som standard på svenska. Språkmenyn uppe till höger byter till engelska och kommer ihåg valet i `localStorage`; minnestexterna visas som de skrevs.
+- Fältet laddar upp till 500 minnen och filtrerar på namnet i webbläsaren. På desktop driver ett urval i skärmstorlek så att meddelandena förblir läsbara i stället för att staplas; sökningen når ändå alla laddade minnen. API:t stöder också `q` för framtida sökning på servern.
+- Några sökträffar lägger sig i ett centrerat rutnät. Större träfflistor glider in i ett rullbart tvåkolumnsrutnät, så varje träff går att nå. När sökningen rensas tonar träffarna bort och fältet börjar driva igen.
+- Klick på ett minne öppnar hela texten, signaturen och det relativa datumet.
+- Formulärets "Ut i tomheten" anropar aldrig API:t.
+- `prefers-reduced-motion` gör det drivande fältet till en vanlig, rullbar lista, och smala skärmar använder samma läsbara listlayout. Båda listlägena visar alla laddade minnen.
+- Dialoger fångar fokus, Escape stänger dem och meddelandena är riktiga knappar för tangentbordsanvändare.
+- Inga byggverktyg behövs för frontend.
 
-## Possible next steps
+## Möjliga nästa steg
 
-- A moderation/admin view with authentication and soft delete
-- Server-side pagination or infinite loading once the memorial grows
-- Persistent rate limiting (for example with Redis) for multi-process deployments
-- Automated tests for the API and database layer
-- Deployment with a persistent volume for `db/memorial.db` and regular backups
+- En modereringsvy med autentisering och mjuk borttagning
+- Paginering eller oändlig laddning på servern när minnesplatsen växer
+- Beständig begränsning av anrop (till exempel med Redis) för driftsättning med flera processer
+- Automatiska tester för API:t och databaslagret
+- Driftsättning med beständig lagring för `db/memorial.db` och regelbundna säkerhetskopior
