@@ -220,6 +220,7 @@
     freshId: null,
     search: '',
     scrollBeforeSearch: 0,
+    scrollBeforeSearchX: 0,
     loaded: false,
     submitting: false,
     resultsOpen: false,
@@ -251,6 +252,8 @@
   let voidCounter = 0;
   let messageObserver = null;
   let scrollLoadTimer = null;
+  let edgeFrame = null;
+  let edgeFadeKey = '';
 
   const usesListLayout = () => reduceMotion.matches;
   let lastListLayout = usesListLayout();
@@ -461,7 +464,7 @@
 
     const depthRoll = Math.random();
     const depth = depthRoll < 0.3 ? 0 : depthRoll < 0.72 ? 1 : 2;
-    const duration = [150, 105, 78][depth] * rnd(0.85, 1.2);
+    const duration = [150, 105, 78][depth] * rnd(0.85, 1.2) * layout.screens;
 
     const el = document.createElement('button');
     el.type = 'button';
@@ -549,21 +552,25 @@
     const compact = window.innerWidth <= 680;
     const headerBottom = document.querySelector('.site-header')?.getBoundingClientRect().bottom || 0;
     const topInset = Math.round(headerBottom + 28);
+    const bottomReserve = compact ? 152 : 130;
     const laneHeight = compact ? 106 : 122;
-    const available = Math.max(laneHeight * 2, viewportHeight - topInset);
+    const available = Math.max(laneHeight * 2, viewportHeight - topInset - bottomReserve);
     const lanes = clamp(
       Math.floor(available / laneHeight),
       2,
       compact ? 4 : 9,
     );
-    const perRow = compact ? 2 : 3;
+    const screens = 2;
+    const perRow = compact ? 3 : 4;
 
     return {
       compact,
       topInset,
+      bottomReserve,
       laneHeight,
       lanes,
       perRow,
+      screens,
       limit: lanes * perRow,
     };
   }
@@ -574,7 +581,7 @@
 
     return Math.max(
       viewportHeight,
-      layout.topInset + rows * layout.laneHeight + 64,
+      layout.topInset + rows * layout.laneHeight + layout.bottomReserve + 56,
     );
   }
 
@@ -597,7 +604,7 @@
       if (!rowDurations.has(row)) {
         const depthRoll = Math.random();
         const depth = depthRoll < 0.3 ? 0 : depthRoll < 0.72 ? 1 : 2;
-        rowDurations.set(row, [150, 105, 78][depth] * rnd(0.85, 1.2));
+        rowDurations.set(row, [150, 105, 78][depth] * rnd(0.85, 1.2) * layout.screens);
       }
 
       const duration = rowDurations.get(row);
@@ -616,6 +623,50 @@
 
     state.rendered += count;
     els.fieldTrack.style.height = `${trackHeight(layout)}px`;
+    updateTravel();
+  }
+
+  function updateTravel() {
+    const trackWidth = els.fieldTrack.offsetWidth || window.innerWidth * 2;
+    const cardWidth = Math.min(560, window.innerWidth * 0.78);
+    els.fieldTrack.style.setProperty('--travel', `${trackWidth + cardWidth + 48}px`);
+  }
+
+  function updateEdgeFade() {
+    if (usesListLayout()) return;
+
+    const width = els.field.clientWidth;
+    const height = els.field.clientHeight;
+    const left = els.field.scrollLeft;
+    const top = els.field.scrollTop;
+    const compact = window.innerWidth <= 680;
+    const key = `${left}:${top}:${width}:${height}:${compact}`;
+
+    if (key === edgeFadeKey) return;
+    edgeFadeKey = key;
+
+    const fade = Math.round(width * (compact ? 0.09 : 0.07));
+    const horizontal = `linear-gradient(90deg, transparent ${left}px, #000 ${left + fade}px, #000 ${Math.max(left + fade, left + width - fade)}px, transparent ${left + width}px)`;
+    const vertical = `linear-gradient(180deg, #000 0, #000 ${Math.max(0, top + height - 190)}px, transparent ${top + height}px)`;
+
+    els.fieldTrack.style.webkitMaskImage = `${horizontal}, ${vertical}`;
+    els.fieldTrack.style.webkitMaskComposite = 'source-in';
+    els.fieldTrack.style.maskImage = `${horizontal}, ${vertical}`;
+    els.fieldTrack.style.maskComposite = 'intersect';
+  }
+
+  function scheduleEdgeFade() {
+    if (edgeFrame !== null) return;
+
+    edgeFrame = window.requestAnimationFrame(() => {
+      edgeFrame = null;
+      updateEdgeFade();
+    });
+  }
+
+  function centerField() {
+    els.field.scrollLeft = Math.max(0, (els.field.scrollWidth - els.field.clientWidth) / 2);
+    updateEdgeFade();
   }
 
   function renderField() {
@@ -629,10 +680,14 @@
 
     if (usesListLayout()) {
       state.memories.forEach((memory) => spawn(memory));
+      centerField();
       return;
     }
 
-    if (state.memories.length === 0) return;
+    if (state.memories.length === 0) {
+      centerField();
+      return;
+    }
 
     // Start with two screens so the first scroll already reveals more.
     appendFieldBatch();
@@ -642,6 +697,7 @@
     ) {
       appendFieldBatch();
     }
+    centerField();
   }
 
   function maybeLoadMore() {
@@ -890,7 +946,10 @@
     const wasSearching = state.search.length > 0;
     const changed = normalized !== state.search;
 
-    if (searching && !wasSearching) state.scrollBeforeSearch = els.field.scrollTop;
+    if (searching && !wasSearching) {
+      state.scrollBeforeSearch = els.field.scrollTop;
+      state.scrollBeforeSearchX = els.field.scrollLeft;
+    }
 
     state.search = normalized;
     els.clr.hidden = rawValue.length === 0;
@@ -899,6 +958,8 @@
 
     if (!searching) {
       els.field.scrollTop = state.scrollBeforeSearch;
+      els.field.scrollLeft = state.scrollBeforeSearchX;
+      updateEdgeFade();
       document.body.classList.toggle('field-scrolled', state.scrollBeforeSearch > 10);
       els.status.textContent = '';
       els.searchLeave.hidden = true;
@@ -1192,6 +1253,8 @@
         applySearch('');
       }
       els.field.scrollTop = 0;
+      centerField();
+      document.body.classList.remove('field-scrolled');
       spawn(memory, { once: true, fresh: true });
       toast(t('voidToast'));
       return;
@@ -1343,6 +1406,7 @@
 
     els.field.addEventListener('scroll', () => {
       document.body.classList.toggle('field-scrolled', els.field.scrollTop > 10);
+      scheduleEdgeFade();
       window.clearTimeout(scrollLoadTimer);
       scrollLoadTimer = window.setTimeout(maybeLoadMore, 120);
     }, { passive: true });
