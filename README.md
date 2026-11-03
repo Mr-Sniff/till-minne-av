@@ -41,6 +41,50 @@ För att använda en annan databasfil:
 DATABASE_PATH=/tmp/till-minne-av.db bundle exec ruby app.rb
 ```
 
+### Miljövariabler
+
+| Variabel | Standard | Syfte |
+| --- | --- | --- |
+| `HOST` | `127.0.0.1` | Adress att lyssna på |
+| `PORT` | `4567` | HTTP-port |
+| `DATABASE_PATH` | `db/memorial.db` | Sökväg till SQLite-filen |
+| `SEED_DEMO` | ej satt | Sätt till `false` för att hoppa över demominnen |
+| `RATE_LIMIT` | `10` | Tillåtna POST-anrop per IP och tidsfönster |
+| `RATE_WINDOW` | `600` | Tidsfönstret för begränsningen i sekunder |
+
+## Publicera på Render
+
+Repot innehåller en Render Blueprint (`render.yaml`) som skapar en webbtjänst i Ruby-miljön.
+
+1. Skapa ett konto på <https://render.com> och koppla ditt GitHub-konto.
+2. Öppna <https://render.com/deploy?repo=https://github.com/Mr-Sniff/till-minne-av>.
+3. Granska tjänsten och klicka **Deploy Blueprint**.
+
+Render bygger med `bundle install` och startar med `bundle exec ruby app.rb`. `HOST` sätts till `0.0.0.0` så att Renders proxy når servern, och `DATABASE_PATH` pekar på `data/memorial.db` i projektet. Adressen blir normalt `https://till-minne-av.onrender.com` och visas i dashboarden.
+
+### Gratis plan
+
+Blueprinten använder `plan: free`:
+
+- Tjänsten sover efter cirka 15 minuters inaktivitet. Första besöket efter vilan kan ta upp till en minut.
+- Lagringen är tillfällig. `data/memorial.db` återskapas med demominnen vid varje deploy och omstart, så riktiga minnen försvinner.
+
+### Uppgradera till beständig lagring
+
+Ändra i `render.yaml` så att tjänsten får en betald instans och en disk:
+
+```yaml
+    plan: 0.5c-512mb   # $7/mån
+    disk:
+      name: memorial-data
+      mountPath: /opt/render/project/src/data
+      sizeGB: 1        # $0.25/mån
+```
+
+Commit och pusha ändringen. Render uppdaterar tjänsten och monterar disken på samma katalog som `DATABASE_PATH` pekar på, så databasen finns kvar mellan deploys. Disken kräver en betald instans och ett betalkort i Render.
+
+För att starta med en tom minnesplats sätter du `SEED_DEMO` till `false` i `render.yaml` innan första deployen.
+
 ## Köra i GitHub Codespaces
 
 Repot har en devcontainer, så appen kan köras i GitHub Codespaces utan lokal Ruby-installation.
@@ -67,17 +111,6 @@ gh codespace cp -e 'remote:db/memorial.db' ./db/memorial.db
 
 En codespace är alltså en tillfällig server. När den stoppas (efter 30 minuters inaktivitet som standard) slutar sidan svara. För en permanent sajt behövs en host som Render eller Fly.io med beständig lagring.
 
-### Miljövariabler
-
-| Variabel | Standard | Syfte |
-| --- | --- | --- |
-| `HOST` | `127.0.0.1` | Adress att lyssna på |
-| `PORT` | `4567` | HTTP-port |
-| `DATABASE_PATH` | `db/memorial.db` | Sökväg till SQLite-filen |
-| `SEED_DEMO` | ej satt | Sätt till `false` för att hoppa över demominnen |
-| `RATE_LIMIT` | `10` | Tillåtna POST-anrop per IP och tidsfönster |
-| `RATE_WINDOW` | `600` | Tidsfönstret för begränsningen i sekunder |
-
 ## Projektstruktur
 
 ```
@@ -86,10 +119,13 @@ En codespace är alltså en tillfällig server. När den stoppas (efter 30 minut
 ├── config.ru               Rack-ingång
 ├── Gemfile
 ├── .devcontainer/          GitHub Codespaces-konfiguration
+├── .ruby-version           Ruby-version för Render
+├── render.yaml             Render Blueprint
 ├── db/
 │   ├── schema.sql          SQLite-schema
 │   ├── seeds.rb            Prototypens ursprungliga minnen
 │   └── memorial.db         Skapas vid första starten (ignoreras av git)
+├── data/                   Databas i Render (skapas vid körning, ignoreras av git)
 ├── lib/
 │   ├── database.rb         SQLite-frågor och serialisering
 │   └── rate_limiter.rb     Liten begränsning av POST-anrop i minnet

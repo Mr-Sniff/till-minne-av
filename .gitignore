@@ -6,6 +6,7 @@
 /db/*.db
 /db/*.db-shm
 /db/*.db-wal
+/data/
 
 # Local environment
 .env
