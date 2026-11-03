@@ -24,6 +24,11 @@ module Remembered
     set :bind, ENV.fetch("HOST", "127.0.0.1")
     set :port, ENV.fetch("PORT", "4567").to_i
     set :server, :puma
+    # SQLite-anslutningen öppnas innan Puma startar. Om Puma kör i cluster
+    # mode och forkar en worker stänger sqlite3-gemet den ärvda anslutningen,
+    # vilket gör alla frågor i workern till ett fel. Kör därför alltid en
+    # enda process; WEB_CONCURRENCY sätts av vissa hosts (till exempel Render).
+    set :server_settings, { workers: 0 }
 
     configure do
       db_path = ENV.fetch("DATABASE_PATH", File.join(APP_ROOT, "db", "memorial.db"))
